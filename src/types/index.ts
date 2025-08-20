@@ -67,6 +67,7 @@ export interface CategorySummary {
 
 // タスク詳細
 export interface TaskDetail {
+  taskExecutionId?: string
   taskId: string
   taskName: string
   categoryId?: string
