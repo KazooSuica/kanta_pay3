@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 
 /**
@@ -11,6 +11,24 @@ const CalculationPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [calculation, setCalculation] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [childName, setChildName] = useState('')
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
+  const [adjustAmount, setAdjustAmount] = useState('')
+  const [adjustReason, setAdjustReason] = useState('')
+
+  useEffect(() => {
+    const fetchChildName = async () => {
+      try {
+        const result = await window.electronAPI.getSetting('childName')
+        if (result.success) {
+          setChildName(result.data || '')
+        }
+      } catch (err) {
+        console.error('[CalculationPage] Failed to load child name:', err)
+      }
+    }
+    fetchChildName()
+  }, [])
 
   // 計算実行
   const handleCalculate = async () => {
@@ -44,6 +62,86 @@ const CalculationPage: React.FC = () => {
     setSelectedDate(newDate)
     setCalculation(null) // 前の計算結果をクリア
     setError(null)
+  }
+
+  const pieStyle = useMemo(() => {
+    if (!calculation?.categoryBreakdown) return {}
+    let current = 0
+    const segments = calculation.categoryBreakdown.map((cat: any) => {
+      const percent = calculation.totalAmount > 0 ? (cat.totalAmount / calculation.totalAmount) * 100 : 0
+      const start = current
+      current += percent
+      return `${cat.categoryColor} ${start}% ${current}%`
+    })
+    return { background: `conic-gradient(${segments.join(',')})` }
+  }, [calculation])
+
+  const startAdjust = (task: any) => {
+    setEditingTaskId(task.taskExecutionId)
+    setAdjustAmount(String(task.adjustedAmount ?? task.originalAmount ?? 0))
+    setAdjustReason(task.adjustmentReason || '')
+  }
+
+  const cancelAdjust = () => {
+    setEditingTaskId(null)
+    setAdjustAmount('')
+    setAdjustReason('')
+  }
+
+  const submitAdjust = async () => {
+    if (!editingTaskId) return
+    const amountNum = parseInt(adjustAmount, 10)
+    try {
+      const result = await window.electronAPI.adjustTaskExecutionAmount(editingTaskId, amountNum, adjustReason)
+      if (!result.success) {
+        setError(result.error || '金額調整に失敗しました')
+      }
+    } catch (err) {
+      console.error('[CalculationPage] Adjust amount failed:', err)
+      setError('金額調整中にエラーが発生しました')
+    }
+    cancelAdjust()
+    await handleCalculate()
+  }
+
+  const createPrintData = () => ({
+    type: 'receipt' as const,
+    title: 'お小遣い計算結果',
+    date: selectedDate,
+    childName: childName,
+    data: calculation,
+    options: {
+      includeAdjustments: true,
+      includeCategoryBreakdown: true,
+      includeTaskDetails: true,
+      paperSize: 'A4',
+      orientation: 'portrait',
+      margins: { top: 10, right: 10, bottom: 10, left: 10 }
+    }
+  })
+
+  const handlePrint = async () => {
+    if (!calculation) return
+    const result = await window.electronAPI.printReceipt(createPrintData())
+    if (!result.success) {
+      setError(result.error || '印刷に失敗しました')
+    }
+  }
+
+  const handleSavePDF = async () => {
+    if (!calculation) return
+    const result = await window.electronAPI.savePDF(createPrintData())
+    if (!result.success) {
+      setError(result.error || 'PDF保存に失敗しました')
+    }
+  }
+
+  const handlePreview = async () => {
+    if (!calculation) return
+    const result = await window.electronAPI.showPrintPreview(createPrintData())
+    if (!result.success) {
+      setError(result.error || 'プレビュー表示に失敗しました')
+    }
   }
 
   return (
@@ -132,30 +230,106 @@ const CalculationPage: React.FC = () => {
           </div>
 
           {calculation.categoryBreakdown && calculation.categoryBreakdown.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-3">カテゴリ別集計</h3>
-              <div className="space-y-2">
-                {calculation.categoryBreakdown.map((category: any, index: number) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-2xl">{category.categoryIcon}</span>
-                      <span className="font-medium">{category.categoryName}</span>
-                    </div>
-                    <span className="font-bold text-green-600">
-                      ¥{category.totalAmount?.toLocaleString() || '0'}
-                    </span>
+            <>
+              <div className="mt-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-3">カテゴリ別貢献度</h3>
+                <div className="flex flex-col items-center">
+                  <div className="w-48 h-48 rounded-full mb-4" style={pieStyle}></div>
+                  <div className="space-y-2 w-full">
+                    {calculation.categoryBreakdown.map((category: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <span className="inline-block w-4 h-4 rounded-full" style={{ backgroundColor: category.categoryColor }}></span>
+                          <span className="font-medium">{category.categoryName}</span>
+                        </div>
+                        <span className="font-bold text-green-600">
+                          ¥{category.totalAmount?.toLocaleString() || '0'}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
+
+              {calculation.taskDetails && calculation.taskDetails.length > 0 && (
+                <div className="mt-8 overflow-x-auto">
+                  <h3 className="text-lg font-bold text-gray-800 mb-3">タスク詳細</h3>
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">タスク</th>
+                        <th className="px-4 py-2 text-right text-sm font-medium text-gray-500">回数</th>
+                        <th className="px-4 py-2 text-right text-sm font-medium text-gray-500">単価</th>
+                        <th className="px-4 py-2 text-right text-sm font-medium text-gray-500">基本金額</th>
+                        <th className="px-4 py-2 text-right text-sm font-medium text-gray-500">調整後</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-500">理由</th>
+                        <th className="px-4 py-2 text-right text-sm font-medium text-gray-500">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {calculation.taskDetails.map((task: any) => (
+                        <React.Fragment key={task.taskExecutionId || task.taskId}>
+                          <tr>
+                            <td className="px-4 py-2">{task.taskName}</td>
+                            <td className="px-4 py-2 text-right">{task.count}</td>
+                            <td className="px-4 py-2 text-right">¥{task.unitPrice.toLocaleString()}</td>
+                            <td className="px-4 py-2 text-right">¥{task.originalAmount?.toLocaleString()}</td>
+                            <td className="px-4 py-2 text-right">
+                              {task.adjustedAmount !== undefined ? `¥${task.adjustedAmount.toLocaleString()}` : '-'}
+                            </td>
+                            <td className="px-4 py-2">{task.adjustmentReason || '-'}</td>
+                            <td className="px-4 py-2 text-right">
+                              <button onClick={() => startAdjust(task)} className="text-blue-600 hover:underline">調整</button>
+                            </td>
+                          </tr>
+                          {editingTaskId === task.taskExecutionId && (
+                            <tr className="bg-gray-50">
+                              <td colSpan={7} className="px-4 py-3">
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                  <div>
+                                    <label className="block text-sm text-gray-700">金額</label>
+                                    <input
+                                      type="number"
+                                      value={adjustAmount}
+                                      onChange={e => setAdjustAmount(e.target.value)}
+                                      className="mt-1 px-2 py-1 border rounded w-32"
+                                    />
+                                  </div>
+                                  <div className="flex-1">
+                                    <label className="block text-sm text-gray-700">理由</label>
+                                    <input
+                                      type="text"
+                                      value={adjustReason}
+                                      onChange={e => setAdjustReason(e.target.value)}
+                                      className="mt-1 px-2 py-1 border rounded w-full"
+                                    />
+                                  </div>
+                                  <div className="flex items-end gap-2">
+                                    <button onClick={submitAdjust} className="bg-blue-600 text-white px-4 py-1 rounded-md">保存</button>
+                                    <button onClick={cancelAdjust} className="bg-gray-400 text-white px-4 py-1 rounded-md">取消</button>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => console.log('印刷機能は後で実装')}
-              className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md font-medium"
-            >
-              🖨️ 印刷する
+          <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-center">
+            <button onClick={handlePrint} className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md font-medium">
+              🖨️ 印刷
+            </button>
+            <button onClick={handleSavePDF} className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md font-medium">
+              💾 PDF保存
+            </button>
+            <button onClick={handlePreview} className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-md font-medium">
+              👀 プレビュー
             </button>
           </div>
         </div>

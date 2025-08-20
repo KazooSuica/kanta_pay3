@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron'
-import { 
-  getStore, 
-  getDatabaseStats, 
-  createBackup, 
+import {
+  getStore,
+  getDatabaseStats,
+  createBackup,
   restoreFromBackup,
   createRecord,
   getRecord,
@@ -15,6 +15,7 @@ import {
   type DailyRecord,
   type TaskExecution
 } from './database'
+import { taskExecutionHelpers } from './database-helpers'
 
 // 印刷用HTML生成関数
 const generatePrintHTML = (printData: any): string => {
@@ -605,6 +606,16 @@ export const setupIpcHandlers = (): void => {
     }
   })
 
+  ipcMain.handle('task-executions:adjust-amount', async (event, id, adjustedAmount, reason) => {
+    try {
+      const updated = taskExecutionHelpers.adjustAmount(id, adjustedAmount, reason)
+      return { success: true, data: updated }
+    } catch (error) {
+      console.error('Failed to adjust task execution amount:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
   // Backup and restore operations
   ipcMain.handle('data:export', async () => {
     try {
@@ -734,7 +745,7 @@ export const setupIpcHandlers = (): void => {
         categoryExecutions.forEach(execution => {
           const task = categoryTasks.find(t => t.id === execution.taskId)
           if (!task) return
-          
+
           const originalAmount = execution.amount
           const finalAmount = execution.adjustedAmount ?? execution.amount
           const isAdjusted = execution.adjustedAmount !== undefined && execution.adjustedAmount !== execution.amount
@@ -749,8 +760,9 @@ export const setupIpcHandlers = (): void => {
             }
           }
           categoryExecutionCount += execution.count
-          
+
           const taskDetail = {
+            taskExecutionId: execution.id,
             taskId: task.id,
             taskName: task.name,
             categoryId: category.id,

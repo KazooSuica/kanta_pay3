@@ -44,6 +44,9 @@ export interface ElectronAPI {
     date: string
     taskExecutions: Omit<TaskExecution, 'id' | 'dailyRecordId'>[]
   }) => Promise<ApiResponse<DailyRecord & { taskExecutions: TaskExecution[] }>>
+
+  // Task executions
+  adjustTaskExecutionAmount: (id: string, adjustedAmount: number, reason: string) => Promise<ApiResponse<TaskExecution | null>>
   
   // Calculation
   calculateAllowance: (date: string) => Promise<ApiResponse<AllowanceCalculation>>
@@ -93,6 +96,9 @@ export interface IPCEventMap {
   // Daily records
   'daily-records:get': (date: string) => Promise<ApiResponse<DailyRecord | null>>
   'daily-records:save': (record: any) => Promise<ApiResponse<DailyRecord>>
+
+  // Task executions
+  'task-executions:adjust-amount': (id: string, adjustedAmount: number, reason: string) => Promise<ApiResponse<TaskExecution | null>>
   
   // Settings
   'settings:get': (key: string) => Promise<ApiResponse<string | null>>
