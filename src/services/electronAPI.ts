@@ -1,5 +1,5 @@
 // Simple wrapper for Electron API calls
-import { ApiResponse, Category, CreateInput, PartialUpdate } from '../types'
+import { ApiResponse, Category, Task, CreateInput, PartialUpdate } from '../types'
 
 class ElectronAPIService {
   private checkElectronAPI(): void {
@@ -74,6 +74,30 @@ class ElectronAPIService {
     return this.handleAPICall(
       () => window.electronAPI.getAllTasks(),
       'タスク一覧取得'
+    )
+  }
+
+  async createTask(task: CreateInput<Task>): Promise<ApiResponse> {
+    return this.handleAPICall(
+      () => window.electronAPI.createTask(task),
+      'タスク作成'
+    )
+  }
+
+  async updateTask(
+    id: string,
+    updates: PartialUpdate<Task>
+  ): Promise<ApiResponse> {
+    return this.handleAPICall(
+      () => window.electronAPI.updateTask(id, updates),
+      'タスク更新'
+    )
+  }
+
+  async deleteTask(id: string): Promise<ApiResponse> {
+    return this.handleAPICall(
+      () => window.electronAPI.deleteTask(id),
+      'タスク削除'
     )
   }
 
