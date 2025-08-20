@@ -145,11 +145,12 @@ const isValidDate = (dateString: string): boolean => {
  * 未来の日付かどうかチェック
  */
 const isFutureDate = (dateString: string): boolean => {
-  const inputDate = new Date(dateString)
+  const [y, m, d] = dateString.split('-').map(Number)
+  const inputDate = new Date(y, m - 1, d)
+  inputDate.setHours(0, 0, 0, 0)
   const today = new Date()
-  today.setHours(0, 0, 0, 0) // 時間をリセット
-  
-  return inputDate > today
+  today.setHours(0, 0, 0, 0)
+  return inputDate.getTime() > today.getTime()
 }
 
 /**
