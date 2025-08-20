@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Task, Category } from '../types'
+import {
+  validateDailyInput,
+  formatValidationErrors,
+  getDuplicateDateMessage,
+  getSaveSuccessMessage
+} from '../utils/dailyInputValidation'
 
 const DailyInputPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -9,6 +15,7 @@ const DailyInputPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [selectedTasks, setSelectedTasks] = useState<Record<string, number>>({})
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [activeCategoryId, setActiveCategoryId] = useState<string>('')
 
   // データの初期読み込み
   useEffect(() => {
@@ -22,6 +29,9 @@ const DailyInputPage: React.FC = () => {
 
         if (categoriesResponse.success && categoriesResponse.data) {
           setCategories(categoriesResponse.data)
+          if (categoriesResponse.data.length > 0) {
+            setActiveCategoryId(categoriesResponse.data[0].id)
+          }
           console.log('[DailyInputPage] Categories loaded:', categoriesResponse.data.length)
         } else {
           throw new Error('カテゴリの読み込みに失敗しました')
@@ -61,10 +71,45 @@ const DailyInputPage: React.FC = () => {
     return sum + (task ? task.unitPrice * count : 0)
   }, 0)
 
+  // 選択済みタスクをカテゴリ別に整理
+  const selectedTaskDetails = Object.entries(selectedTasks)
+    .map(([taskId, count]) => {
+      const task = tasks.find(t => t.id === taskId)
+      return task ? { ...task, count } : null
+    })
+    .filter((t): t is Task & { count: number } => t !== null)
+
+  const selectedTasksByCategory = categories
+    .map(category => ({
+      category,
+      tasks: selectedTaskDetails.filter(task => task.categoryId === category.id)
+    }))
+    .filter(group => group.tasks.length > 0)
+
   // 保存処理
   const handleSave = async () => {
+    const validation = validateDailyInput(
+      { date: currentDate, selectedTasks },
+      tasks
+    )
+
+    if (!validation.isValid) {
+      const messages = formatValidationErrors(validation.errors)
+      alert(messages.join('\n'))
+      return
+    }
+
     try {
       console.log('[DailyInputPage] Saving record...')
+
+      const existing = await window.electronAPI.getDailyRecord(currentDate)
+      if (existing.success && existing.data) {
+        const overwrite = window.confirm(getDuplicateDateMessage(currentDate))
+        if (!overwrite) {
+          return
+        }
+      }
+
       const taskExecutions = Object.entries(selectedTasks).map(([taskId, count]) => {
         const task = tasks.find(t => t.id === taskId)!
         return {
@@ -81,7 +126,13 @@ const DailyInputPage: React.FC = () => {
 
       if (result.success) {
         console.log('[DailyInputPage] Record saved successfully')
-        alert('記録を保存しました！')
+        alert(
+          getSaveSuccessMessage(
+            currentDate,
+            totalAmount,
+            Object.keys(selectedTasks).length
+          )
+        )
         setSelectedTasks({})
       } else {
         throw new Error(result.error || '保存に失敗しました')
@@ -200,42 +251,72 @@ const DailyInputPage: React.FC = () => {
               📝 今日やったタスクを選んでください
             </h2>
             
-            {categories.map(category => {
-              const categoryTasks = tasks.filter(task => 
-                task.categoryId === category.id && task.isActive
+            <div className="mb-6 flex flex-wrap gap-2">
+              {categories.map(category => (
+                <button
+                  key={category.id}
+                  onClick={() => setActiveCategoryId(category.id)}
+                  className={`px-3 py-1 rounded-full border flex items-center gap-1 ${
+                    activeCategoryId === category.id
+                      ? 'bg-blue-500 border-blue-500 text-white'
+                      : 'bg-white border-gray-300 text-gray-700'
+                  }`}
+                >
+                  <span>{category.icon}</span>
+                  <span>{category.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {(() => {
+              const category = categories.find(c => c.id === activeCategoryId)
+              const categoryTasks = tasks.filter(
+                task => task.categoryId === activeCategoryId && task.isActive
               )
-              
-              if (categoryTasks.length === 0) return null
-              
+
+              if (!category || categoryTasks.length === 0) {
+                return <div className="text-gray-600">このカテゴリにはタスクがありません</div>
+              }
+
               return (
-                <div key={category.id} className="mb-6">
+                <div>
                   <h3 className="text-lg font-medium text-gray-700 mb-3 flex items-center">
                     <span className="text-2xl mr-2">{category.icon}</span>
                     {category.name}
                   </h3>
-                  
+
                   <div className="space-y-3">
                     {categoryTasks.map(task => (
-                      <div key={task.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div
+                        key={task.id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
                         <div className="flex-1">
                           <div className="font-medium text-gray-800">{task.name}</div>
                           <div className="text-sm text-gray-600">¥{task.unitPrice} / 回</div>
                         </div>
-                        
+
                         <div className="flex items-center space-x-3">
                           <button
-                            onClick={() => setTaskCount(task.id, Math.max(0, (selectedTasks[task.id] || 0) - 1))}
+                            onClick={() =>
+                              setTaskCount(
+                                task.id,
+                                Math.max(0, (selectedTasks[task.id] || 0) - 1)
+                              )
+                            }
                             className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600"
                           >
                             -
                           </button>
-                          
+
                           <span className="w-8 text-center font-medium">
                             {selectedTasks[task.id] || 0}
                           </span>
-                          
+
                           <button
-                            onClick={() => setTaskCount(task.id, (selectedTasks[task.id] || 0) + 1)}
+                            onClick={() =>
+                              setTaskCount(task.id, (selectedTasks[task.id] || 0) + 1)
+                            }
                             className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center hover:bg-green-600"
                           >
                             +
@@ -246,19 +327,42 @@ const DailyInputPage: React.FC = () => {
                   </div>
                 </div>
               )
-            })}
+            })()}
           </div>
         </div>
 
         {/* サイドバー */}
         <div className="space-y-6">
+          {/* 選択済みタスク */}
+          {selectedTasksByCategory.length > 0 && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">えらんだタスク</h3>
+              {selectedTasksByCategory.map(({ category, tasks }) => (
+                <div key={category.id} className="mb-4 last:mb-0">
+                  <h4 className="font-medium text-gray-700 flex items-center">
+                    <span className="text-xl mr-2">{category.icon}</span>
+                    {category.name}
+                  </h4>
+                  <ul className="mt-2 space-y-1">
+                    {tasks.map(task => (
+                      <li key={task.id} className="flex justify-between text-sm">
+                        <span>{task.name}</span>
+                        <span>{task.count}回</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* 合計表示 */}
           <div className="bg-white rounded-lg shadow-md p-6 text-center">
             <h3 className="text-lg font-bold text-gray-800 mb-4">今日の合計</h3>
             <div className="text-3xl font-bold text-green-600 mb-4">
               ¥{totalAmount.toLocaleString()}
             </div>
-            
+
             {Object.keys(selectedTasks).length > 0 && (
               <button
                 onClick={handleSave}
