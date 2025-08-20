@@ -1,5 +1,5 @@
 // Simple wrapper for Electron API calls
-import { ApiResponse } from '../types'
+import { ApiResponse, Category, CreateInput, PartialUpdate } from '../types'
 
 class ElectronAPIService {
   private checkElectronAPI(): void {
@@ -42,6 +42,30 @@ class ElectronAPIService {
     return this.handleAPICall(
       () => window.electronAPI.getAllCategories(),
       'カテゴリ一覧取得'
+    )
+  }
+
+  async createCategory(category: CreateInput<Category>): Promise<ApiResponse> {
+    return this.handleAPICall(
+      () => window.electronAPI.createCategory(category),
+      'カテゴリ作成'
+    )
+  }
+
+  async updateCategory(
+    id: string,
+    updates: PartialUpdate<Category>
+  ): Promise<ApiResponse> {
+    return this.handleAPICall(
+      () => window.electronAPI.updateCategory(id, updates),
+      'カテゴリ更新'
+    )
+  }
+
+  async deleteCategory(id: string): Promise<ApiResponse> {
+    return this.handleAPICall(
+      () => window.electronAPI.deleteCategory(id),
+      'カテゴリ削除'
     )
   }
 
