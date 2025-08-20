@@ -1,0 +1,88 @@
+/* 印刷スタイル */
+@import './styles/print.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', 'Meiryo', sans-serif;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+}
+
+@layer components {
+  /* Child-friendly button styles */
+  .btn-child {
+    @apply min-h-touch-target min-w-touch-target px-6 py-3 rounded-lg font-medium text-button-large;
+    @apply transition-all duration-200 ease-in-out;
+    @apply focus:outline-none focus:ring-4 focus:ring-opacity-50;
+    @apply transform hover:scale-105 active:scale-95;
+  }
+  
+  .btn-primary {
+    @apply btn-child bg-primary-500 text-white hover:bg-primary-600 focus:ring-primary-300;
+  }
+  
+  .btn-secondary {
+    @apply btn-child bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-300;
+  }
+  
+  .btn-success {
+    @apply btn-child bg-success-500 text-white hover:bg-success-600 focus:ring-success-300;
+  }
+  
+  .btn-warning {
+    @apply btn-child bg-warning-500 text-white hover:bg-warning-600 focus:ring-warning-300;
+  }
+  
+  /* Card styles */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
+  }
+  
+  /* Input styles for children */
+  .input-child {
+    @apply w-full px-4 py-3 text-child-friendly rounded-lg border-2 border-gray-300;
+    @apply focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200;
+    @apply transition-colors duration-200;
+  }
+  
+  /* Error message styles */
+  .error-message {
+    @apply text-red-600 text-sm mt-1 font-medium;
+  }
+  
+  /* Success message styles */
+  .success-message {
+    @apply text-success-600 text-sm mt-1 font-medium;
+  }
+}
+
+@layer utilities {
+  /* Child-friendly text sizes */
+  .text-child-friendly {
+    font-size: 18px;
+    line-height: 1.6;
+  }
+  
+  .text-button-large {
+    font-size: 20px;
+    line-height: 1.4;
+  }
+  
+  /* Touch-friendly spacing */
+  .min-h-touch-target {
+    min-height: 44px;
+  }
+  
+  .min-w-touch-target {
+    min-width: 44px;
+  }
+}
