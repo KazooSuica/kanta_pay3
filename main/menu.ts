@@ -1,4 +1,4 @@
-import { Menu, MenuItemConstructorOptions, shell, BrowserWindow } from 'electron'
+import { Menu, MenuItemConstructorOptions, BrowserWindow } from 'electron'
 import { getAppVersion } from './utils'
 
 export const createApplicationMenu = (): Menu => {
@@ -58,19 +58,6 @@ export const createApplicationMenu = (): Menu => {
           label: 'ホーム',
           accelerator: 'CmdOrCtrl+H',
           click: () => navigateToPage('/')
-        },
-        {
-          label: 'テスト - アラート表示',
-          click: () => {
-            console.log('[Menu] Test alert clicked')
-            const focusedWindow = BrowserWindow.getFocusedWindow()
-            if (focusedWindow) {
-              focusedWindow.webContents.executeJavaScript(`
-                alert('メニューからのテスト実行が成功しました！');
-                console.log('[Renderer] Test alert executed');
-              `)
-            }
-          }
         },
         { type: 'separator' },
         {
