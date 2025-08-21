@@ -1,6 +1,6 @@
 {
   "name": "allowance-tracker",
-  "version": "1.0.0",
+  "version": "0.0.1-beta",
   "description": "お小遣い請求アプリ - 小学生向けタスク管理とお小遣い計算アプリ",
   "main": "dist/main/main.js",
   "homepage": "./",
@@ -70,8 +70,7 @@
     },
     "files": [
       "dist/**/*",
-      "!node_modules/**/*",
-      "node_modules/electron-store/**/*"
+      "node_modules/**/*"
     ],
     "extraResources": [
       {
@@ -98,19 +97,14 @@
     "win": {
       "target": [
         {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
           "target": "portable",
           "arch": [
             "x64"
           ]
         }
       ],
-      "icon": "assets/icons/icon.ico"
+      "icon": "assets/icons/icon.ico",
+      "artifactName": "${name}-${version}-portable-${arch}.exe"
     },
     "linux": {
       "target": [

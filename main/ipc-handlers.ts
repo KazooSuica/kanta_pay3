@@ -19,7 +19,7 @@ import { taskExecutionHelpers } from './database-helpers'
 
 // 印刷用HTML生成関数
 const generatePrintHTML = (printData: any): string => {
-  const { title, date, childName, data, options } = printData
+  const { title, date, data, options } = printData
   
   // 日付フォーマット
   const formatDate = (dateStr: string) => {
@@ -82,12 +82,9 @@ const generatePrintHTML = (printData: any): string => {
           ${data.taskDetails.map((task: any) => `
             <tr>
               <td>
-                <div>
+                <div style="display: flex; align-items: center; gap: 2mm;">
                   <span>${task.categoryIcon}</span>
-                  <div>
-                    <div class="font-medium">${task.taskName}</div>
-                    <div class="text-small text-gray">${task.categoryName}</div>
-                  </div>
+                  <span class="font-medium">${task.taskName}</span>
                 </div>
               </td>
               <td class="text-center">${task.count}回</td>
@@ -111,7 +108,6 @@ const generatePrintHTML = (printData: any): string => {
           <tr class="font-bold">
             <td colspan="${options.includeAdjustments ? 5 : 3}">合計</td>
             <td class="text-right text-large">${formatAmount(data.totalAmount)}</td>
-            ${options.includeAdjustments ? '<td></td>' : ''}
           </tr>
         </tfoot>
       </table>
@@ -168,6 +164,13 @@ const generatePrintHTML = (printData: any): string => {
           line-height: 1.4;
           color: #000;
           background: white;
+        }
+
+        @media screen {
+          body {
+            padding: 40px;
+            background: #f9fafb;
+          }
         }
         
         .print-layout {
@@ -268,24 +271,7 @@ const generatePrintHTML = (printData: any): string => {
         .adjustment-reasons {
           font-size: 10pt;
         }
-        
-        .signature-section {
-          margin-top: 12mm;
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 8mm;
-        }
-        
-        .signature-box {
-          text-align: center;
-        }
-        
-        .signature-line {
-          border-bottom: 1pt solid #333;
-          height: 8mm;
-          margin-bottom: 2mm;
-        }
-        
+
         .print-footer {
           border-top: 1pt solid #333;
           padding-top: 4mm;
@@ -306,9 +292,6 @@ const generatePrintHTML = (printData: any): string => {
               <div>発行日: ${new Date().toLocaleDateString('ja-JP')}</div>
             </div>
             <div class="text-right">
-              <div style="font-size: 14pt; font-weight: 500; margin-bottom: 1mm;">
-                ${childName} さん
-              </div>
               <div>対象日: ${formatDate(date)}</div>
             </div>
           </div>
@@ -331,18 +314,6 @@ const generatePrintHTML = (printData: any): string => {
         ${categoryTable}
         ${taskTable}
         ${adjustmentSummary}
-
-        <!-- 署名欄 -->
-        <div class="signature-section">
-          <div class="signature-box">
-            <div class="signature-line"></div>
-            <div>お子様サイン</div>
-          </div>
-          <div class="signature-box">
-            <div class="signature-line"></div>
-            <div>保護者サイン</div>
-          </div>
-        </div>
 
         <!-- フッター -->
         <div class="print-footer">
@@ -633,6 +604,18 @@ export const setupIpcHandlers = (): void => {
       return { success: true }
     } catch (error) {
       console.error('Failed to import data:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  ipcMain.handle('data:open-directory', async () => {
+    try {
+      const { app, shell } = require('electron')
+      const userDataPath = app.getPath('userData')
+      await shell.openPath(userDataPath)
+      return { success: true }
+    } catch (error) {
+      console.error('Failed to open data directory:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   })
@@ -972,7 +955,7 @@ export const setupIpcHandlers = (): void => {
   // Print operations
   ipcMain.handle('print:receipt', async (event, printData) => {
     try {
-      const { BrowserWindow, dialog } = require('electron')
+      const { BrowserWindow } = require('electron')
       const path = require('path')
       const fs = require('fs')
       
@@ -1003,7 +986,7 @@ export const setupIpcHandlers = (): void => {
         silent: false,
         printBackground: true,
         color: true,
-        margin: {
+        margins: {
           marginType: 'custom',
           top: printData.options.margins.top,
           bottom: printData.options.margins.bottom,
@@ -1019,24 +1002,31 @@ export const setupIpcHandlers = (): void => {
         footer: ''
       }
       
-      // 印刷実行
-      const result = await printWindow.webContents.print(printOptions)
-      
+      // 印刷実行をラップして結果を判定
+      await new Promise<void>((resolve, reject) => {
+        printWindow.webContents.print(
+          printOptions,
+          (success: boolean, failureReason?: string) => {
+            if (success) {
+              resolve()
+            } else {
+              reject(new Error(failureReason || '印刷がキャンセルされました'))
+            }
+          }
+        )
+      })
+
       // 印刷ウィンドウを閉じる
       printWindow.close()
-      
+
       // 一時ファイルを削除
       try {
         fs.unlinkSync(tempFilePath)
       } catch (cleanupError) {
         console.warn('Failed to cleanup temp file:', cleanupError)
       }
-      
-      if (result) {
-        return { success: true }
-      } else {
-        return { success: false, error: '印刷がキャンセルされました' }
-      }
+
+      return { success: true }
     } catch (error) {
       console.error('Failed to print receipt:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }

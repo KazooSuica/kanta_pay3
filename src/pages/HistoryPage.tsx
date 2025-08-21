@@ -80,6 +80,14 @@ const HistoryPage: React.FC = () => {
     }
   }
 
+  const handleOpenDataDir = async () => {
+    try {
+      await electronAPI.openDataDirectory()
+    } catch (err) {
+      console.error('Failed to open data directory', err)
+    }
+  }
+
   const monthlyTotals = useMemo(() => {
     const result: Record<string, number> = {}
     stats?.trends?.forEach(t => {
@@ -133,6 +141,7 @@ const HistoryPage: React.FC = () => {
           </div>
           <button type="submit" className="btn-primary px-4 py-2">表示</button>
           <button type="button" onClick={handleExport} className="btn-secondary px-4 py-2">CSVエクスポート</button>
+          <button type="button" onClick={handleOpenDataDir} className="btn-secondary px-4 py-2">データ保存場所を開く</button>
         </div>
       </form>
 
