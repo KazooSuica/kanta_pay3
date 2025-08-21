@@ -972,7 +972,7 @@ export const setupIpcHandlers = (): void => {
   // Print operations
   ipcMain.handle('print:receipt', async (event, printData) => {
     try {
-      const { BrowserWindow, dialog } = require('electron')
+      const { BrowserWindow } = require('electron')
       const path = require('path')
       const fs = require('fs')
       
@@ -1003,7 +1003,7 @@ export const setupIpcHandlers = (): void => {
         silent: false,
         printBackground: true,
         color: true,
-        margin: {
+        margins: {
           marginType: 'custom',
           top: printData.options.margins.top,
           bottom: printData.options.margins.bottom,
@@ -1019,24 +1019,31 @@ export const setupIpcHandlers = (): void => {
         footer: ''
       }
       
-      // 印刷実行
-      const result = await printWindow.webContents.print(printOptions)
-      
+      // 印刷実行をラップして結果を判定
+      await new Promise<void>((resolve, reject) => {
+        printWindow.webContents.print(
+          printOptions,
+          (success: boolean, failureReason?: string) => {
+            if (success) {
+              resolve()
+            } else {
+              reject(new Error(failureReason || '印刷がキャンセルされました'))
+            }
+          }
+        )
+      })
+
       // 印刷ウィンドウを閉じる
       printWindow.close()
-      
+
       // 一時ファイルを削除
       try {
         fs.unlinkSync(tempFilePath)
       } catch (cleanupError) {
         console.warn('Failed to cleanup temp file:', cleanupError)
       }
-      
-      if (result) {
-        return { success: true }
-      } else {
-        return { success: false, error: '印刷がキャンセルされました' }
-      }
+
+      return { success: true }
     } catch (error) {
       console.error('Failed to print receipt:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
