@@ -1,6 +1,6 @@
 {
   "name": "allowance-tracker",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.1",
   "description": "お小遣い請求アプリ - 小学生向けタスク管理とお小遣い計算アプリ",
   "main": "dist/main/main.js",
   "homepage": "./",
@@ -98,19 +98,14 @@
     "win": {
       "target": [
         {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
           "target": "portable",
           "arch": [
             "x64"
           ]
         }
       ],
-      "icon": "assets/icons/icon.ico"
+      "icon": "assets/icons/icon.ico",
+      "artifactName": "${name}-${version}-portable-${arch}.exe"
     },
     "linux": {
       "target": [

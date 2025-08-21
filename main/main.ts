@@ -10,6 +10,10 @@ let mainWindow: BrowserWindow | null = null
 
 const createWindow = (): void => {
   // Create the browser window
+  const iconPath = process.platform === 'win32'
+    ? join(__dirname, '../../assets/icons/icon.ico')
+    : join(__dirname, '../../assets/icons/icon.png')
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -20,7 +24,7 @@ const createWindow = (): void => {
       contextIsolation: true,
       preload: join(__dirname, 'preload.js'),
     },
-    icon: join(__dirname, '../../assets/icons/icon.png'),
+    icon: iconPath,
     title: 'お小遣い請求アプリ',
     show: false, // Don't show until ready-to-show
   })
