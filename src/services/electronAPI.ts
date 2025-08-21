@@ -2,6 +2,10 @@
 import { ApiResponse, Category, Task, CreateInput, PartialUpdate } from '../types'
 
 class ElectronAPIService {
+  constructor() {
+    this.setupDataHandlers()
+  }
+
   private checkElectronAPI(): void {
     if (!window.electronAPI) {
       throw new Error('Electron API is not available. Make sure the app is running in Electron environment.')
@@ -138,6 +142,70 @@ class ElectronAPIService {
       () => window.electronAPI.exportData(),
       'データエクスポート'
     )
+  }
+
+  async importData(backupData: string): Promise<ApiResponse<void>> {
+    return this.handleAPICall(
+      () => window.electronAPI.importData(backupData),
+      'データインポート'
+    )
+  }
+
+  private setupDataHandlers(): void {
+    if (!window.electronAPI?.onDataExportRequest || !window.electronAPI?.onDataImportRequest) {
+      return
+    }
+
+    window.electronAPI.onDataExportRequest(async () => {
+      const confirmed = window.confirm('現在のデータをエクスポートしますか？')
+      if (!confirmed) return
+
+      try {
+        const result = await this.exportData()
+        if (result.success && result.data) {
+          const blob = new Blob([result.data], { type: 'application/json' })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `backup-${new Date().toISOString().split('T')[0]}.json`
+          a.click()
+          URL.revokeObjectURL(url)
+          alert('エクスポートが完了しました')
+        } else {
+          alert(`エクスポートに失敗しました: ${result.error ?? '不明なエラー'}`)
+        }
+      } catch (error) {
+        console.error('Export failed:', error)
+        alert('エクスポート中にエラーが発生しました')
+      }
+    })
+
+    window.electronAPI.onDataImportRequest(async () => {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = 'application/json'
+      input.onchange = async () => {
+        const file = input.files?.[0]
+        if (!file) return
+
+        const text = await file.text()
+        const confirmImport = window.confirm('選択したデータをインポートすると現在のデータが上書きされます。続行しますか？')
+        if (!confirmImport) return
+
+        try {
+          const result = await this.importData(text)
+          if (result.success) {
+            alert('インポートが完了しました')
+          } else {
+            alert(`インポートに失敗しました: ${result.error ?? '不明なエラー'}`)
+          }
+        } catch (error) {
+          console.error('Import failed:', error)
+          alert('インポート中にエラーが発生しました')
+        }
+      }
+      input.click()
+    })
   }
 
   // Utility methods

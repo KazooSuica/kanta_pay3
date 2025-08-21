@@ -21,16 +21,24 @@ export const createApplicationMenu = (): Menu => {
           label: 'データをエクスポート',
           accelerator: 'CmdOrCtrl+E',
           click: () => {
-            // Will be implemented in task 12
-            console.log('Export data clicked')
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('data:export-request')
+            } else {
+              console.error('[Menu] No focused window found for export')
+            }
           }
         },
         {
           label: 'データをインポート',
           accelerator: 'CmdOrCtrl+I',
           click: () => {
-            // Will be implemented in task 13
-            console.log('Import data clicked')
+            const focusedWindow = BrowserWindow.getFocusedWindow()
+            if (focusedWindow) {
+              focusedWindow.webContents.send('data:import-request')
+            } else {
+              console.error('[Menu] No focused window found for import')
+            }
           }
         },
         { type: 'separator' },

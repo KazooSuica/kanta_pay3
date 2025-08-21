@@ -36,6 +36,8 @@ const IPC_EVENTS = {
   // Data Management
   DATA_EXPORT: 'data:export',
   DATA_IMPORT: 'data:import',
+  DATA_EXPORT_REQUEST: 'data:export-request',
+  DATA_IMPORT_REQUEST: 'data:import-request',
   
   // Settings
   SETTINGS_GET: 'settings:get',
@@ -97,6 +99,12 @@ const electronAPI = {
   // Export/Import
   exportData: createSecureInvoker(IPC_EVENTS.DATA_EXPORT),
   importData: createSecureInvoker(IPC_EVENTS.DATA_IMPORT),
+  onDataExportRequest: (callback: () => void) => {
+    ipcRenderer.on(IPC_EVENTS.DATA_EXPORT_REQUEST, () => callback())
+  },
+  onDataImportRequest: (callback: () => void) => {
+    ipcRenderer.on(IPC_EVENTS.DATA_IMPORT_REQUEST, () => callback())
+  },
   
   // Print
   printReceipt: createSecureInvoker(IPC_EVENTS.PRINT_RECEIPT),
