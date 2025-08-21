@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Task, Category, CreateInput } from '../types'
 import TaskValidator from '../utils/taskValidation'
+import { getChildFriendlyMessage } from '../utils/dailyInputErrorHandler'
+import Alert from '../components/common/Alert'
 
 const TaskManagementPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -36,8 +38,8 @@ const TaskManagementPage: React.FC = () => {
       if (tasksResponse.success && tasksResponse.data) {
         setTasks(tasksResponse.data)
       }
-    } catch {
-      setError('データの読み込みに失敗しました')
+    } catch (err) {
+      setError(getChildFriendlyMessage(err))
     } finally {
       setIsLoading(false)
     }
@@ -103,7 +105,7 @@ const TaskManagementPage: React.FC = () => {
       setIsModalOpen(false)
       await loadData()
     } catch (err) {
-      setValidationError(err instanceof Error ? err.message : '保存に失敗しました')
+      setValidationError(getChildFriendlyMessage(err))
     }
   }
 
@@ -118,7 +120,7 @@ const TaskManagementPage: React.FC = () => {
       }
       await loadData()
     } catch (err) {
-      alert(err instanceof Error ? err.message : '削除に失敗しました')
+      alert(getChildFriendlyMessage(err))
     }
   }
 
@@ -146,15 +148,9 @@ const TaskManagementPage: React.FC = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">タスク管理</h1>
         </div>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center">
-            <span className="text-red-600 text-xl mr-2">⚠️</span>
-            <div>
-              <h3 className="text-red-800 font-medium">エラーが発生しました</h3>
-              <p className="text-red-700 mt-1">{error}</p>
-            </div>
-          </div>
-        </div>
+        <Alert level="high" title="エラーが発生しました" className="mb-6">
+          {error}
+        </Alert>
         <div className="text-center">
           <button
             onClick={() => window.location.reload()}
@@ -176,7 +172,9 @@ const TaskManagementPage: React.FC = () => {
               {editingTask ? 'タスクを編集' : '新規タスク'}
             </h2>
             {validationError && (
-              <div className="mb-4 text-red-600 text-sm">{validationError}</div>
+              <Alert level="medium" size="small" className="mb-4">
+                {validationError}
+              </Alert>
             )}
             <div className="space-y-4">
               <div>

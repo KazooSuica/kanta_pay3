@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { getChildFriendlyMessage } from '../utils/dailyInputErrorHandler'
+import Alert from '../components/common/Alert'
 
 /**
  * お小遣い計算ページ（シンプル版）
@@ -45,12 +47,12 @@ const CalculationPage: React.FC = () => {
         setCalculation(result.data)
         console.log('[CalculationPage] Calculation successful:', result.data)
       } else {
-        setError(result.error || '計算に失敗しました')
+        setError(getChildFriendlyMessage(result.error || '計算に失敗しました'))
         console.error('[CalculationPage] Calculation failed:', result.error)
       }
     } catch (error) {
       console.error('[CalculationPage] Error during calculation:', error)
-      setError('計算中にエラーが発生しました')
+      setError(getChildFriendlyMessage(error))
     } finally {
       setIsLoading(false)
     }
@@ -94,11 +96,11 @@ const CalculationPage: React.FC = () => {
     try {
       const result = await window.electronAPI.adjustTaskExecutionAmount(editingTaskId, amountNum, adjustReason)
       if (!result.success) {
-        setError(result.error || '金額調整に失敗しました')
+        setError(getChildFriendlyMessage(result.error || '金額調整に失敗しました'))
       }
     } catch (err) {
       console.error('[CalculationPage] Adjust amount failed:', err)
-      setError('金額調整中にエラーが発生しました')
+      setError(getChildFriendlyMessage(err))
     }
     cancelAdjust()
     await handleCalculate()
@@ -124,7 +126,7 @@ const CalculationPage: React.FC = () => {
     if (!calculation) return
     const result = await window.electronAPI.printReceipt(createPrintData())
     if (!result.success) {
-      setError(result.error || '印刷に失敗しました')
+      setError(getChildFriendlyMessage(result.error || '印刷に失敗しました'))
     }
   }
 
@@ -132,7 +134,7 @@ const CalculationPage: React.FC = () => {
     if (!calculation) return
     const result = await window.electronAPI.savePDF(createPrintData())
     if (!result.success) {
-      setError(result.error || 'PDF保存に失敗しました')
+      setError(getChildFriendlyMessage(result.error || 'PDF保存に失敗しました'))
     }
   }
 
@@ -140,7 +142,7 @@ const CalculationPage: React.FC = () => {
     if (!calculation) return
     const result = await window.electronAPI.showPrintPreview(createPrintData())
     if (!result.success) {
-      setError(result.error || 'プレビュー表示に失敗しました')
+      setError(getChildFriendlyMessage(result.error || 'プレビュー表示に失敗しました'))
     }
   }
 
@@ -201,15 +203,9 @@ const CalculationPage: React.FC = () => {
       {/* エラー表示 */}
       {error && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-center">
-              <span className="text-red-600 text-xl mr-2">⚠️</span>
-              <div>
-                <h3 className="text-red-800 font-medium">エラーが発生しました</h3>
-                <p className="text-red-700 mt-1">{error}</p>
-              </div>
-            </div>
-          </div>
+          <Alert level="high" title="エラーが発生しました">
+            {error}
+          </Alert>
         </div>
       )}
 

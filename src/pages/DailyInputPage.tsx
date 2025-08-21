@@ -7,6 +7,8 @@ import {
   getDuplicateDateMessage,
   getSaveSuccessMessage
 } from '../utils/dailyInputValidation'
+import { getChildFriendlyMessage } from '../utils/dailyInputErrorHandler'
+import Alert from '../components/common/Alert'
 
 const DailyInputPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -45,7 +47,7 @@ const DailyInputPage: React.FC = () => {
         }
       } catch (error) {
         console.error('[DailyInputPage] Error loading data:', error)
-        setError('データの読み込みに失敗しました')
+        setError(getChildFriendlyMessage(error))
       } finally {
         setIsLoading(false)
       }
@@ -95,7 +97,7 @@ const DailyInputPage: React.FC = () => {
 
     if (!validation.isValid) {
       const messages = formatValidationErrors(validation.errors)
-      alert(messages.join('\n'))
+      alert(messages.map(m => getChildFriendlyMessage(m)).join('\n'))
       return
     }
 
@@ -139,7 +141,7 @@ const DailyInputPage: React.FC = () => {
       }
     } catch (error) {
       console.error('[DailyInputPage] Error saving record:', error)
-      alert('保存に失敗しました')
+      alert(getChildFriendlyMessage(error))
     }
   }
 
@@ -167,15 +169,9 @@ const DailyInputPage: React.FC = () => {
           </h1>
         </div>
         
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center">
-            <span className="text-red-600 text-xl mr-2">⚠️</span>
-            <div>
-              <h3 className="text-red-800 font-medium">データの読み込みに失敗しました</h3>
-              <p className="text-red-700 mt-1">{error}</p>
-            </div>
-          </div>
-        </div>
+        <Alert level="high" title="データの読み込みに失敗しました" className="mb-6">
+          {error}
+        </Alert>
         
         <div className="text-center">
           <button

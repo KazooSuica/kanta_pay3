@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Category } from '../types'
 import TaskValidator from '../utils/taskValidation'
+import { getChildFriendlyMessage } from '../utils/dailyInputErrorHandler'
+import Alert from '../components/common/Alert'
 
 const CategoryManagementPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([])
@@ -28,7 +30,7 @@ const CategoryManagementPage: React.FC = () => {
         throw new Error('カテゴリの読み込みに失敗しました')
       }
     } catch (error) {
-      setError('データの読み込みに失敗しました')
+      setError(getChildFriendlyMessage(error))
     } finally {
       setIsLoading(false)
     }
@@ -83,7 +85,7 @@ const CategoryManagementPage: React.FC = () => {
       setIsModalOpen(false)
       await loadCategories()
     } catch (err) {
-      setValidationError(err instanceof Error ? err.message : '保存に失敗しました')
+      setValidationError(getChildFriendlyMessage(err))
     }
   }
 
@@ -98,7 +100,7 @@ const CategoryManagementPage: React.FC = () => {
       }
       await loadCategories()
     } catch (err) {
-      alert(err instanceof Error ? err.message : '削除に失敗しました')
+      alert(getChildFriendlyMessage(err))
     }
   }
 
@@ -126,15 +128,9 @@ const CategoryManagementPage: React.FC = () => {
           </h1>
         </div>
         
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center">
-            <span className="text-red-600 text-xl mr-2">⚠️</span>
-            <div>
-              <h3 className="text-red-800 font-medium">エラーが発生しました</h3>
-              <p className="text-red-700 mt-1">{error}</p>
-            </div>
-          </div>
-        </div>
+        <Alert level="high" title="エラーが発生しました" className="mb-6">
+          {error}
+        </Alert>
         
         <div className="text-center">
           <button
@@ -165,7 +161,9 @@ const CategoryManagementPage: React.FC = () => {
                 className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               {validationError && (
-                <p className="text-red-600 text-sm mt-1">{validationError}</p>
+                <Alert level="medium" size="small" className="mt-1">
+                  {validationError}
+                </Alert>
               )}
             </div>
             <div className="mb-4">

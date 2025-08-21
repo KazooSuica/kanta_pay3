@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react'
 import { electronAPI } from '../services/electronAPI'
 import { StatisticsData } from '../types'
+import { getChildFriendlyMessage } from '../utils/dailyInputErrorHandler'
+import Alert from '../components/common/Alert'
 
 const HistoryPage: React.FC = () => {
   const today = new Date().toISOString().split('T')[0]
@@ -23,7 +25,7 @@ const HistoryPage: React.FC = () => {
       if (historyRes.success) {
         setStats(historyRes.data)
       } else {
-        setError(historyRes.error || '履歴取得に失敗しました')
+        setError(getChildFriendlyMessage(historyRes.error || '履歴取得に失敗しました'))
       }
       if (exportRes.success && exportRes.data) {
         const data = JSON.parse(exportRes.data)
@@ -49,7 +51,7 @@ const HistoryPage: React.FC = () => {
       }
     } catch (err) {
       console.error(err)
-      setError('データ取得に失敗しました')
+      setError(getChildFriendlyMessage(err))
     }
     setLoading(false)
   }
@@ -136,7 +138,7 @@ const HistoryPage: React.FC = () => {
         </div>
       </form>
 
-      {error && <div className="text-red-500 mb-4">{error}</div>}
+      {error && <Alert level="high" className="mb-4">{error}</Alert>}
       {loading && <div className="mb-4">読み込み中...</div>}
 
       {stats && (

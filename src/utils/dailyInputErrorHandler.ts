@@ -35,6 +35,13 @@ export const handleDailyInputError = (error: unknown): DailyInputError => {
 }
 
 /**
+ * エラーから子供向けメッセージのみを取得
+ */
+export const getChildFriendlyMessage = (error: unknown): string => {
+  return handleDailyInputError(error).childFriendlyMessage
+}
+
+/**
  * AppErrorの処理
  */
 const handleAppError = (error: AppError): DailyInputError => {

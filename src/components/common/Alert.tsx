@@ -3,6 +3,10 @@ import React from 'react'
 interface AlertProps {
   children: React.ReactNode
   variant?: 'info' | 'success' | 'warning' | 'error'
+  /**
+   * メッセージのレベル（variantより優先される）
+   */
+  level?: 'low' | 'medium' | 'high' | 'critical'
   size?: 'small' | 'medium' | 'large' | 'child'
   title?: string
   icon?: React.ReactNode
@@ -13,6 +17,7 @@ interface AlertProps {
 const Alert: React.FC<AlertProps> = ({
   children,
   variant = 'info',
+  level,
   size = 'medium',
   title,
   icon,
@@ -61,12 +66,29 @@ const Alert: React.FC<AlertProps> = ({
     )
   }
 
-  const classes = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`
+  const levelVariantMap = {
+    low: 'info',
+    medium: 'warning',
+    high: 'error',
+    critical: 'error'
+  } as const
+
+  const levelIcons = {
+    low: defaultIcons.info,
+    medium: defaultIcons.warning,
+    high: defaultIcons.warning,
+    critical: defaultIcons.error
+  }
+
+  const effectiveVariant = level ? levelVariantMap[level] : variant
+  const effectiveIcon = icon || (level ? levelIcons[level] : defaultIcons[variant])
+
+  const classes = `${baseClasses} ${variantClasses[effectiveVariant]} ${sizeClasses[size]} ${className}`
 
   return (
     <div className={classes} role="alert">
       <div className="flex-shrink-0">
-        {icon || defaultIcons[variant]}
+        {effectiveIcon}
       </div>
       
       <div className="flex-1 min-w-0">
