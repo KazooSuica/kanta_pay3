@@ -10,9 +10,10 @@ let mainWindow: BrowserWindow | null = null
 
 const createWindow = (): void => {
   // Create the browser window
+  const basePath = isDev ? join(__dirname, '../../') : process.resourcesPath
   const iconPath = process.platform === 'win32'
-    ? join(__dirname, '../../assets/icons/icon.ico')
-    : join(__dirname, '../../assets/icons/icon.png')
+    ? join(basePath, 'assets/icons/icon.ico')
+    : join(basePath, 'assets/icons/icon.png')
 
   mainWindow = new BrowserWindow({
     width: 1280,
