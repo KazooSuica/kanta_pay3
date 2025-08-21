@@ -608,6 +608,18 @@ export const setupIpcHandlers = (): void => {
     }
   })
 
+  ipcMain.handle('data:open-directory', async () => {
+    try {
+      const { app, shell } = require('electron')
+      const userDataPath = app.getPath('userData')
+      await shell.openPath(userDataPath)
+      return { success: true }
+    } catch (error) {
+      console.error('Failed to open data directory:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
   // Settings operations
   ipcMain.handle('settings:get', async (event, key) => {
     try {
