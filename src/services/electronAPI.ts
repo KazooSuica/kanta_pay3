@@ -124,6 +124,22 @@ class ElectronAPIService {
     )
   }
 
+  // History
+  async getHistory(startDate?: string, endDate?: string): Promise<ApiResponse> {
+    return this.handleAPICall(
+      () => window.electronAPI.getHistory(startDate, endDate),
+      '履歴取得'
+    )
+  }
+
+  // Export
+  async exportData(): Promise<ApiResponse<string>> {
+    return this.handleAPICall(
+      () => window.electronAPI.exportData(),
+      'データエクスポート'
+    )
+  }
+
   // Utility methods
   async isElectronAvailable(): Promise<boolean> {
     try {
