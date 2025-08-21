@@ -169,6 +169,13 @@ const generatePrintHTML = (printData: any): string => {
           color: #000;
           background: white;
         }
+
+        @media screen {
+          body {
+            padding: 40px;
+            background: #f9fafb;
+          }
+        }
         
         .print-layout {
           width: 100%;
