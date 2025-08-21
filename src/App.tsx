@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import Header from './components/common/Header'
 import LoadingSpinner from './components/common/LoadingSpinner'
 import HomePage from './pages/HomePage'
@@ -138,10 +138,13 @@ function App() {
     )
   }
 
+  const isFileProtocol = typeof window !== 'undefined' && window.location?.protocol === 'file:'
+  const RouterComponent = isFileProtocol ? HashRouter : BrowserRouter
+
   return (
-    <Router>
+    <RouterComponent>
       <AppContent />
-    </Router>
+    </RouterComponent>
   )
 }
 
