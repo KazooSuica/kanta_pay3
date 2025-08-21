@@ -1021,13 +1021,16 @@ export const setupIpcHandlers = (): void => {
       
       // 印刷実行をラップして結果を判定
       await new Promise<void>((resolve, reject) => {
-        printWindow.webContents.print(printOptions, (success, failureReason) => {
-          if (success) {
-            resolve()
-          } else {
-            reject(new Error(failureReason || '印刷がキャンセルされました'))
+        printWindow.webContents.print(
+          printOptions,
+          (success: boolean, failureReason?: string) => {
+            if (success) {
+              resolve()
+            } else {
+              reject(new Error(failureReason || '印刷がキャンセルされました'))
+            }
           }
-        })
+        )
       })
 
       // 印刷ウィンドウを閉じる
