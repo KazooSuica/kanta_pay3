@@ -151,6 +151,13 @@ class ElectronAPIService {
     )
   }
 
+  async openDataDirectory(): Promise<ApiResponse<void>> {
+    return this.handleAPICall(
+      () => window.electronAPI.openDataDirectory(),
+      'データ保存場所を開く'
+    )
+  }
+
   private setupDataHandlers(): void {
     if (!window.electronAPI?.onDataExportRequest || !window.electronAPI?.onDataImportRequest) {
       return

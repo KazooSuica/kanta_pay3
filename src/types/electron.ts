@@ -61,6 +61,7 @@ export interface ElectronAPI {
   // Export/Import
   exportData: () => Promise<ApiResponse<string>> // JSON string
   importData: (backupData: string) => Promise<ApiResponse<void>>
+  openDataDirectory: () => Promise<ApiResponse<void>>
   onDataExportRequest: (callback: () => void) => void
   onDataImportRequest: (callback: () => void) => void
   
@@ -109,6 +110,7 @@ export interface IPCEventMap {
   // Data management
   'data:export': () => Promise<ApiResponse<string>>
   'data:import': (data: string) => Promise<ApiResponse<void>>
+  'data:open-directory': () => Promise<ApiResponse<void>>
   'data:export-request': () => void
   'data:import-request': () => void
   

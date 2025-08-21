@@ -38,6 +38,7 @@ const IPC_EVENTS = {
   DATA_IMPORT: 'data:import',
   DATA_EXPORT_REQUEST: 'data:export-request',
   DATA_IMPORT_REQUEST: 'data:import-request',
+  DATA_OPEN_DIR: 'data:open-directory',
   
   // Settings
   SETTINGS_GET: 'settings:get',
@@ -99,6 +100,7 @@ const electronAPI = {
   // Export/Import
   exportData: createSecureInvoker(IPC_EVENTS.DATA_EXPORT),
   importData: createSecureInvoker(IPC_EVENTS.DATA_IMPORT),
+  openDataDirectory: createSecureInvoker(IPC_EVENTS.DATA_OPEN_DIR),
   onDataExportRequest: (callback: () => void) => {
     ipcRenderer.on(IPC_EVENTS.DATA_EXPORT_REQUEST, () => callback())
   },
