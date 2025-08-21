@@ -972,7 +972,7 @@ export const setupIpcHandlers = (): void => {
   // Print operations
   ipcMain.handle('print:receipt', async (event, printData) => {
     try {
-      const { BrowserWindow, dialog } = require('electron')
+      const { BrowserWindow } = require('electron')
       const path = require('path')
       const fs = require('fs')
       
@@ -1003,7 +1003,7 @@ export const setupIpcHandlers = (): void => {
         silent: false,
         printBackground: true,
         color: true,
-        margin: {
+        margins: {
           marginType: 'custom',
           top: printData.options.margins.top,
           bottom: printData.options.margins.bottom,
@@ -1019,8 +1019,16 @@ export const setupIpcHandlers = (): void => {
         footer: ''
       }
       
-      // 印刷実行
-      await printWindow.webContents.print(printOptions)
+      // 印刷実行をラップして結果を判定
+      await new Promise<void>((resolve, reject) => {
+        printWindow.webContents.print(printOptions, (success, failureReason) => {
+          if (success) {
+            resolve()
+          } else {
+            reject(new Error(failureReason || '印刷がキャンセルされました'))
+          }
+        })
+      })
 
       // 印刷ウィンドウを閉じる
       printWindow.close()
