@@ -1020,23 +1020,19 @@ export const setupIpcHandlers = (): void => {
       }
       
       // 印刷実行
-      const result = await printWindow.webContents.print(printOptions)
-      
+      await printWindow.webContents.print(printOptions)
+
       // 印刷ウィンドウを閉じる
       printWindow.close()
-      
+
       // 一時ファイルを削除
       try {
         fs.unlinkSync(tempFilePath)
       } catch (cleanupError) {
         console.warn('Failed to cleanup temp file:', cleanupError)
       }
-      
-      if (result) {
-        return { success: true }
-      } else {
-        return { success: false, error: '印刷がキャンセルされました' }
-      }
+
+      return { success: true }
     } catch (error) {
       console.error('Failed to print receipt:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
