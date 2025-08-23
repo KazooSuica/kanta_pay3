@@ -1,354 +1,224 @@
-import Store from 'electron-store'
-import { v4 as uuidv4 } from 'uuid'
-import { join } from 'path'
+import Database from 'better-sqlite3'
 import { app } from 'electron'
+import { join } from 'path'
+import { existsSync, readFileSync, renameSync } from 'fs'
+import { v4 as uuidv4 } from 'uuid'
+import type { Category, Task, DailyRecord, TaskExecution } from '../src/types'
 
-// データベーススキーマの型定義
-interface Category {
-    id: string
-    name: string
-    color: string
-    icon: string
-    createdAt: string
-}
-
-interface Task {
-    id: string
-    name: string
-    categoryId: string
-    unitPrice: number
-    description?: string
-    isActive: boolean
-    createdAt: string
-    updatedAt: string
-}
-
-interface DailyRecord {
-    id: string
-    date: string // YYYY-MM-DD format
-    totalAmount: number
-    createdAt: string
-    updatedAt: string
-}
-
-interface TaskExecution {
-    id: string
-    dailyRecordId: string
-    taskId: string
-    count: number
-    amount: number
-    adjustedAmount?: number
-    adjustmentReason?: string
-    adjustedAt?: string
-}
-
-interface DatabaseSchema {
-    categories: Record<string, Category>
-    tasks: Record<string, Task>
-    dailyRecords: Record<string, DailyRecord>
-    taskExecutions: Record<string, TaskExecution>
-    settings: Record<string, string>
-    version: number
-}
-
-let store: Store<DatabaseSchema> | null = null
+let db: Database.Database | null = null
 
 export const setupDatabase = async (): Promise<void> => {
-    try {
-        // データベースファイルの保存場所を設定
-        const userDataPath = app.getPath('userData')
-        const dbPath = join(userDataPath, 'allowance-tracker-data.json')
+  const userDataPath = app.getPath('userData')
+  const dbPath = join(userDataPath, 'allowance-tracker.db')
+  db = new Database(dbPath)
+  db.pragma('foreign_keys = ON')
 
-        store = new Store<DatabaseSchema>({
-            name: 'allowance-tracker-data',
-            cwd: userDataPath,
-            defaults: {
-                categories: {},
-                tasks: {},
-                dailyRecords: {},
-                taskExecutions: {},
-                settings: {},
-                version: 1
-            }
-        })
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      color TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      createdAt TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS tasks (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      categoryId TEXT NOT NULL,
+      unitPrice INTEGER NOT NULL,
+      description TEXT,
+      isActive INTEGER DEFAULT 1,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (categoryId) REFERENCES categories(id)
+    );
+    CREATE TABLE IF NOT EXISTS dailyRecords (
+      id TEXT PRIMARY KEY,
+      date TEXT NOT NULL UNIQUE,
+      totalAmount INTEGER NOT NULL,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS taskExecutions (
+      id TEXT PRIMARY KEY,
+      dailyRecordId TEXT NOT NULL,
+      taskId TEXT NOT NULL,
+      count INTEGER NOT NULL,
+      amount INTEGER NOT NULL,
+      adjustedAmount INTEGER,
+      adjustmentReason TEXT,
+      adjustedAt TEXT,
+      FOREIGN KEY (dailyRecordId) REFERENCES dailyRecords(id),
+      FOREIGN KEY (taskId) REFERENCES tasks(id)
+    );
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+    INSERT OR IGNORE INTO categories (id, name, color, icon, createdAt) VALUES
+      ('help', 'お手伝い', '#22c55e', '🏠', datetime('now')),
+      ('homework', '宿題', '#3b82f6', '📚', datetime('now')),
+      ('other', 'その他', '#8b5cf6', '⭐', datetime('now'));
+    INSERT OR IGNORE INTO settings (key, value) VALUES
+      ('childName', ''),
+      ('currency', 'JPY'),
+      ('dateFormat', 'YYYY-MM-DD'),
+      ('theme', 'light');
+  `)
 
-        // データベースのマイグレーション実行
-        await runMigrations()
-
-        // デフォルトデータの初期化
-        await initializeDefaultData()
-
-        console.log('Database initialized successfully at:', dbPath)
-    } catch (error) {
-        console.error('Failed to initialize database:', error)
-        throw error
-    }
+  await migrateFromJson(userDataPath)
 }
 
-const runMigrations = async (): Promise<void> => {
-    if (!store) throw new Error('Database not initialized')
+export const migrateFromJson = async (userDataPath: string): Promise<void> => {
+  const jsonPath = join(userDataPath, 'allowance-tracker-data.json')
+  if (!db || !existsSync(jsonPath)) return
 
-    const currentVersion = store.get('version', 0)
+  const raw = readFileSync(jsonPath, 'utf-8')
+  const data = JSON.parse(raw)
 
-    // バージョン1: 初期スキーマ
-    if (currentVersion < 1) {
-        console.log('Running migration to version 1...')
+  const insertCategory = db.prepare(`INSERT OR IGNORE INTO categories (id,name,color,icon,createdAt) VALUES (@id,@name,@color,@icon,@createdAt)`)
+  Object.values(data.categories || {}).forEach((c: Category) => insertCategory.run(c))
 
-        // データ整合性チェック
-        await validateDataIntegrity()
+  const insertTask = db.prepare(`INSERT OR IGNORE INTO tasks (id,name,categoryId,unitPrice,description,isActive,createdAt,updatedAt) VALUES (@id,@name,@categoryId,@unitPrice,@description,@isActive,@createdAt,@updatedAt)`)
+  Object.values(data.tasks || {}).forEach((t: Task) => insertTask.run(t))
 
-        store.set('version', 1)
-        console.log('Migration to version 1 completed')
-    }
-}
+  const insertDaily = db.prepare(`INSERT OR IGNORE INTO dailyRecords (id,date,totalAmount,createdAt,updatedAt) VALUES (@id,@date,@totalAmount,@createdAt,@updatedAt)`)
+  Object.values(data.dailyRecords || {}).forEach((d: DailyRecord) => insertDaily.run(d))
 
-const validateDataIntegrity = async (): Promise<void> => {
-    if (!store) throw new Error('Database not initialized')
+  const insertExec = db.prepare(`INSERT OR IGNORE INTO taskExecutions (id,dailyRecordId,taskId,count,amount,adjustedAmount,adjustmentReason,adjustedAt) VALUES (@id,@dailyRecordId,@taskId,@count,@amount,@adjustedAmount,@adjustmentReason,@adjustedAt)`)
+  Object.values(data.taskExecutions || {}).forEach((e: TaskExecution) => insertExec.run(e))
 
-    const categories = store.get('categories', {})
-    const tasks = store.get('tasks', {})
-    const dailyRecords = store.get('dailyRecords', {})
-    const taskExecutions = store.get('taskExecutions', {})
+  const insertSetting = db.prepare(`INSERT OR REPLACE INTO settings (key,value) VALUES (@key,@value)`)
+  Object.entries(data.settings || {}).forEach(([key, value]) => insertSetting.run({ key, value }))
 
-    // カテゴリの整合性チェック
-    for (const [taskId, task] of Object.entries(tasks)) {
-        if (!categories[task.categoryId]) {
-            console.warn(`Task ${taskId} references non-existent category ${task.categoryId}`)
-            // デフォルトカテゴリに移動
-            task.categoryId = 'other'
-        }
-    }
-
-    // タスク実行記録の整合性チェック
-    for (const [executionId, execution] of Object.entries(taskExecutions)) {
-        if (!tasks[execution.taskId]) {
-            console.warn(`Task execution ${executionId} references non-existent task ${execution.taskId}`)
-            // 無効な実行記録を削除
-            delete taskExecutions[executionId]
-        }
-        if (!dailyRecords[execution.dailyRecordId]) {
-            console.warn(`Task execution ${executionId} references non-existent daily record ${execution.dailyRecordId}`)
-            // 無効な実行記録を削除
-            delete taskExecutions[executionId]
-        }
-    }
-
-    // 修正されたデータを保存
-    store.set('tasks', tasks)
-    store.set('taskExecutions', taskExecutions)
-}
-
-const initializeDefaultData = async (): Promise<void> => {
-    if (!store) throw new Error('Database not initialized')
-
-    const categories = store.get('categories', {})
-
-    // デフォルトカテゴリが存在しない場合のみ追加
-    const defaultCategories: Category[] = [
-        {
-            id: 'help',
-            name: 'お手伝い',
-            color: '#22c55e',
-            icon: '🏠',
-            createdAt: new Date().toISOString()
-        },
-        {
-            id: 'homework',
-            name: '宿題',
-            color: '#3b82f6',
-            icon: '📚',
-            createdAt: new Date().toISOString()
-        },
-        {
-            id: 'other',
-            name: 'その他',
-            color: '#8b5cf6',
-            icon: '⭐',
-            createdAt: new Date().toISOString()
-        }
-    ]
-
-    let hasChanges = false
-    for (const category of defaultCategories) {
-        if (!categories[category.id]) {
-            categories[category.id] = category
-            hasChanges = true
-        }
-    }
-
-    if (hasChanges) {
-        store.set('categories', categories)
-        console.log('Default categories initialized')
-    }
-
-    // デフォルト設定の初期化
-    const settings = store.get('settings', {})
-    const defaultSettings = {
-        childName: '',
-        currency: 'JPY',
-        dateFormat: 'YYYY-MM-DD',
-        theme: 'light'
-    }
-
-    let settingsChanged = false
-    for (const [key, value] of Object.entries(defaultSettings)) {
-        if (!settings[key]) {
-            settings[key] = value
-            settingsChanged = true
-        }
-    }
-
-    if (settingsChanged) {
-        store.set('settings', settings)
-        console.log('Default settings initialized')
-    }
-}
-
-// データベース操作のヘルパー関数
-export const getStore = (): Store<DatabaseSchema> => {
-    if (!store) {
-        throw new Error('Database not initialized')
-    }
-    return store
+  renameSync(jsonPath, jsonPath + '.bak')
 }
 
 export const closeDatabase = (): void => {
-    // electron-store doesn't need explicit closing
-    store = null
+  if (db) {
+    db.close()
+    db = null
+  }
 }
 
-export const generateId = (): string => {
-    return uuidv4()
+export const generateId = (): string => uuidv4()
+
+const ensureDb = (): Database.Database => {
+  if (!db) throw new Error('Database not initialized')
+  return db
 }
 
-// CRUD操作のヘルパー関数
-export const createRecord = <T extends { id: string }>(
-    table: keyof DatabaseSchema,
-    record: T
-): T => {
-    if (!store) throw new Error('Database not initialized')
-
-    const records = store.get(table as any, {}) as Record<string, T>
-    records[record.id] = record
-    store.set(table as any, records)
-
-    return record
+export const createRecord = <T extends { [key: string]: any }>(table: string, record: T): T => {
+  const database = ensureDb()
+  const keys = Object.keys(record)
+  const columns = keys.join(',')
+  const placeholders = keys.map(k => `@${k}`).join(',')
+  database.prepare(`INSERT INTO ${table} (${columns}) VALUES (${placeholders})`).run(record)
+  return record
 }
 
-export const getRecord = <T>(
-    table: keyof DatabaseSchema,
-    id: string
-): T | null => {
-    if (!store) throw new Error('Database not initialized')
-
-    const records = store.get(table as any, {}) as Record<string, T>
-    return records[id] || null
+export const getRecord = <T>(table: string, id: string): T | null => {
+  const database = ensureDb()
+  const row = database.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(id)
+  return (row as T) || null
 }
 
-export const getAllRecords = <T>(
-    table: keyof DatabaseSchema
-): T[] => {
-    if (!store) throw new Error('Database not initialized')
-
-    const records = store.get(table as any, {}) as Record<string, T>
-    return Object.values(records)
+export const getAllRecords = <T>(table: string): T[] => {
+  const database = ensureDb()
+  return database.prepare(`SELECT * FROM ${table}`).all() as T[]
 }
 
-export const updateRecord = <T extends { id: string }>(
-    table: keyof DatabaseSchema,
-    id: string,
-    updates: Partial<T>
-): T | null => {
-    if (!store) throw new Error('Database not initialized')
-
-    const records = store.get(table as any, {}) as Record<string, T>
-    const existing = records[id]
-
-    if (!existing) return null
-
-    const updated = { ...existing, ...updates } as T
-    records[id] = updated
-    store.set(table as any, records)
-
-    return updated
+export const updateRecord = <T extends { [key: string]: any }>(table: string, id: string, updates: Partial<T>): T | null => {
+  const database = ensureDb()
+  const keys = Object.keys(updates)
+  if (keys.length === 0) return getRecord<T>(table, id)
+  const setClause = keys.map(k => `${k} = @${k}`).join(', ')
+  const params = { ...updates, id }
+  const result = database.prepare(`UPDATE ${table} SET ${setClause} WHERE id = @id`).run(params)
+  return result.changes > 0 ? getRecord<T>(table, id) : null
 }
 
-export const deleteRecord = (
-    table: keyof DatabaseSchema,
-    id: string
-): boolean => {
-    if (!store) throw new Error('Database not initialized')
-
-    const records = store.get(table as any, {}) as Record<string, any>
-
-    if (!records[id]) return false
-
-    delete records[id]
-    store.set(table as any, records)
-
-    return true
+export const deleteRecord = (table: string, id: string): boolean => {
+  const database = ensureDb()
+  const result = database.prepare(`DELETE FROM ${table} WHERE id = ?`).run(id)
+  return result.changes > 0
 }
 
-// データベースバックアップ機能
-export const createBackup = (): string => {
-    if (!store) throw new Error('Database not initialized')
+export const getSetting = (key: string): string | null => {
+  const database = ensureDb()
+  const row = database.prepare('SELECT value FROM settings WHERE key = ?').get(key)
+  return row ? (row as any).value : null
+}
 
-    const allData = {
-        categories: store.get('categories'),
-        tasks: store.get('tasks'),
-        dailyRecords: store.get('dailyRecords'),
-        taskExecutions: store.get('taskExecutions'),
-        settings: store.get('settings'),
-        version: store.get('version'),
-        backupDate: new Date().toISOString()
+export const setSetting = (key: string, value: string): void => {
+  const database = ensureDb()
+  database.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value)
+}
+
+export const getAllSettings = (): Record<string, string> => {
+  const database = ensureDb()
+  const rows = database.prepare('SELECT key, value FROM settings').all()
+  const result: Record<string, string> = {}
+  for (const row of rows) {
+    result[(row as any).key] = (row as any).value
+  }
+  return result
+}
+
+export const setMultipleSettings = (settings: Record<string, string>): void => {
+  const database = ensureDb()
+  const stmt = database.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (@key, @value)')
+  const tx = database.transaction((entries: Record<string, string>) => {
+    for (const [key, value] of Object.entries(entries)) {
+      stmt.run({ key, value })
     }
+  })
+  tx(settings)
+}
 
-    return JSON.stringify(allData, null, 2)
+export const createBackup = (): string => {
+  const data = {
+    categories: getAllRecords<Category>('categories'),
+    tasks: getAllRecords<Task>('tasks'),
+    dailyRecords: getAllRecords<DailyRecord>('dailyRecords'),
+    taskExecutions: getAllRecords<TaskExecution>('taskExecutions'),
+    settings: getAllSettings(),
+    version: 1,
+    backupDate: new Date().toISOString()
+  }
+  return JSON.stringify(data, null, 2)
 }
 
 export const restoreFromBackup = (backupData: string): void => {
-    if (!store) throw new Error('Database not initialized')
+  const database = ensureDb()
+  const data = JSON.parse(backupData)
+  const tx = database.transaction(() => {
+    database.exec('DELETE FROM taskExecutions; DELETE FROM dailyRecords; DELETE FROM tasks; DELETE FROM categories; DELETE FROM settings;')
+    const insertCategory = database.prepare(`INSERT INTO categories (id,name,color,icon,createdAt) VALUES (@id,@name,@color,@icon,@createdAt)`)
+    const insertTask = database.prepare(`INSERT INTO tasks (id,name,categoryId,unitPrice,description,isActive,createdAt,updatedAt) VALUES (@id,@name,@categoryId,@unitPrice,@description,@isActive,@createdAt,@updatedAt)`)
+    const insertDaily = database.prepare(`INSERT INTO dailyRecords (id,date,totalAmount,createdAt,updatedAt) VALUES (@id,@date,@totalAmount,@createdAt,@updatedAt)`)
+    const insertExec = database.prepare(`INSERT INTO taskExecutions (id,dailyRecordId,taskId,count,amount,adjustedAmount,adjustmentReason,adjustedAt) VALUES (@id,@dailyRecordId,@taskId,@count,@amount,@adjustedAmount,@adjustmentReason,@adjustedAt)`)
+    const insertSetting = database.prepare(`INSERT INTO settings (key,value) VALUES (@key,@value)`)
 
-    try {
-        const data = JSON.parse(backupData)
-
-        // バックアップデータの検証
-        if (!data.categories || !data.tasks || !data.dailyRecords || !data.taskExecutions) {
-            throw new Error('Invalid backup data format')
-        }
-
-        // データを復元
-        store.set('categories', data.categories)
-        store.set('tasks', data.tasks)
-        store.set('dailyRecords', data.dailyRecords)
-        store.set('taskExecutions', data.taskExecutions)
-        store.set('settings', data.settings || {})
-        store.set('version', data.version || 1)
-
-        console.log('Database restored from backup successfully')
-    } catch (error) {
-        console.error('Failed to restore from backup:', error)
-        throw new Error('バックアップファイルの形式が正しくありません')
-    }
+    for (const c of data.categories || []) insertCategory.run(c)
+    for (const t of data.tasks || []) insertTask.run(t)
+    for (const d of data.dailyRecords || []) insertDaily.run(d)
+    for (const e of data.taskExecutions || []) insertExec.run(e)
+    for (const [key, value] of Object.entries(data.settings || {})) insertSetting.run({ key, value })
+  })
+  tx()
 }
 
-// データベース統計情報
 export const getDatabaseStats = () => {
-    if (!store) throw new Error('Database not initialized')
-
-    const categories = store.get('categories', {})
-    const tasks = store.get('tasks', {})
-    const dailyRecords = store.get('dailyRecords', {})
-    const taskExecutions = store.get('taskExecutions', {})
-
-    return {
-        categoriesCount: Object.keys(categories).length,
-        tasksCount: Object.keys(tasks).length,
-        dailyRecordsCount: Object.keys(dailyRecords).length,
-        taskExecutionsCount: Object.keys(taskExecutions).length,
-        databaseVersion: store.get('version', 0)
-    }
+  const database = ensureDb()
+  return {
+    categoriesCount: database.prepare('SELECT COUNT(*) as c FROM categories').get().c as number,
+    tasksCount: database.prepare('SELECT COUNT(*) as c FROM tasks').get().c as number,
+    dailyRecordsCount: database.prepare('SELECT COUNT(*) as c FROM dailyRecords').get().c as number,
+    taskExecutionsCount: database.prepare('SELECT COUNT(*) as c FROM taskExecutions').get().c as number,
+    databaseVersion: 1
+  }
 }
 
-// 型エクスポート
-export type { Category, Task, DailyRecord, TaskExecution, DatabaseSchema }
+export type { Category, Task, DailyRecord, TaskExecution }
+

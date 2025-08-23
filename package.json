@@ -21,6 +21,7 @@
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "clean": "rimraf dist release",
+    "migrate": "ts-node scripts/migrate.ts",
     "postinstall": "electron-builder install-app-deps"
   },
   "keywords": [
@@ -50,12 +51,13 @@
     "postcss": "^8.4.32",
     "rimraf": "^5.0.5",
     "tailwindcss": "^3.3.6",
+    "ts-node": "^10.9.1",
     "typescript": "^5.3.3",
     "vite": "^5.0.10"
   },
   "dependencies": {
     "date-fns": "^3.0.6",
-    "electron-store": "^8.1.0",
+    "sqlite3": "^5.1.6",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.26.1",

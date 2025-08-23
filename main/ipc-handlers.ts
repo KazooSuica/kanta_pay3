@@ -1,6 +1,5 @@
 import { ipcMain } from 'electron'
 import {
-  getStore,
   getDatabaseStats,
   createBackup,
   restoreFromBackup,
@@ -10,6 +9,8 @@ import {
   updateRecord,
   deleteRecord,
   generateId,
+  getSetting,
+  setSetting,
   type Category,
   type Task,
   type DailyRecord,
@@ -623,9 +624,7 @@ export const setupIpcHandlers = (): void => {
   // Settings operations
   ipcMain.handle('settings:get', async (event, key) => {
     try {
-      const store = getStore()
-      const settings = store.get('settings', {})
-      return { success: true, data: settings[key] || null }
+      return { success: true, data: getSetting(key) }
     } catch (error) {
       console.error('Failed to get setting:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
@@ -634,10 +633,7 @@ export const setupIpcHandlers = (): void => {
 
   ipcMain.handle('settings:set', async (event, key, value) => {
     try {
-      const store = getStore()
-      const settings = store.get('settings', {})
-      settings[key] = value
-      store.set('settings', settings)
+      setSetting(key, value)
       return { success: true }
     } catch (error) {
       console.error('Failed to set setting:', error)

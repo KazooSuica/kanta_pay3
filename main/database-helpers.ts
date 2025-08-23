@@ -1,15 +1,18 @@
 // データベース操作のヘルパー関数
-import { 
-  getStore, 
-  getAllRecords, 
-  createRecord, 
-  updateRecord, 
+import {
+  getAllRecords,
+  createRecord,
+  updateRecord,
   deleteRecord,
   generateId,
-  type Category, 
-  type Task, 
-  type DailyRecord, 
-  type TaskExecution 
+  getSetting,
+  setSetting,
+  getAllSettings,
+  setMultipleSettings,
+  type Category,
+  type Task,
+  type DailyRecord,
+  type TaskExecution
 } from './database'
 
 // カテゴリ関連のヘルパー関数
@@ -258,31 +261,22 @@ export const taskExecutionHelpers = {
 export const settingsHelpers = {
   // 設定値を取得
   get: (key: string): string | null => {
-    const store = getStore()
-    const settings = store.get('settings', {})
-    return settings[key] || null
+    return getSetting(key)
   },
 
   // 設定値を保存
   set: (key: string, value: string): void => {
-    const store = getStore()
-    const settings = store.get('settings', {})
-    settings[key] = value
-    store.set('settings', settings)
+    setSetting(key, value)
   },
 
   // すべての設定を取得
   getAll: (): Record<string, string> => {
-    const store = getStore()
-    return store.get('settings', {})
+    return getAllSettings()
   },
 
   // 複数の設定を一度に保存
   setMultiple: (settings: Record<string, string>): void => {
-    const store = getStore()
-    const currentSettings = store.get('settings', {})
-    const updatedSettings = { ...currentSettings, ...settings }
-    store.set('settings', updatedSettings)
+    setMultipleSettings(settings)
   }
 }
 
