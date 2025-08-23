@@ -1,354 +1,360 @@
 import Store from 'electron-store'
 import { v4 as uuidv4 } from 'uuid'
-import { join } from 'path'
 import { app } from 'electron'
 
-// データベーススキーマの型定義
+// 型定義
 interface Category {
-    id: string
-    name: string
-    color: string
-    icon: string
-    createdAt: string
+  id: string
+  name: string
+  color: string
+  icon: string
+  createdAt: string
 }
 
 interface Task {
-    id: string
-    name: string
-    categoryId: string
-    unitPrice: number
-    description?: string
-    isActive: boolean
-    createdAt: string
-    updatedAt: string
+  id: string
+  name: string
+  categoryId: string
+  unitPrice: number
+  description?: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 interface DailyRecord {
-    id: string
-    date: string // YYYY-MM-DD format
-    totalAmount: number
-    createdAt: string
-    updatedAt: string
+  id: string
+  date: string // YYYY-MM-DD format
+  totalAmount: number
+  createdAt: string
+  updatedAt: string
 }
 
 interface TaskExecution {
-    id: string
-    dailyRecordId: string
-    taskId: string
-    count: number
-    amount: number
-    adjustedAmount?: number
-    adjustmentReason?: string
-    adjustedAt?: string
+  id: string
+  dailyRecordId: string
+  taskId: string
+  count: number
+  amount: number
+  adjustedAmount?: number
+  adjustmentReason?: string
+  adjustedAt?: string
 }
 
 interface DatabaseSchema {
-    categories: Record<string, Category>
-    tasks: Record<string, Task>
-    dailyRecords: Record<string, DailyRecord>
-    taskExecutions: Record<string, TaskExecution>
-    settings: Record<string, string>
-    version: number
+  categories: Record<string, Category>
+  tasks: Record<string, Task>
+  dailyRecords: Record<string, DailyRecord>
+  taskExecutions: Record<string, TaskExecution>
+  settings: Record<string, string>
 }
 
-let store: Store<DatabaseSchema> | null = null
+type Stores = {
+  categories: Store<Record<string, Category>>
+  tasks: Store<Record<string, Task>>
+  dailyRecords: Store<Record<string, DailyRecord>>
+  taskExecutions: Store<Record<string, TaskExecution>>
+  settings: Store<Record<string, string>>
+  meta: Store<{ version: number }>
+}
+
+type DataStoreKey = keyof Pick<Stores, 'categories' | 'tasks' | 'dailyRecords' | 'taskExecutions'>
+
+const stores: Partial<Stores> = {}
 
 export const setupDatabase = async (): Promise<void> => {
-    try {
-        // データベースファイルの保存場所を設定
-        const userDataPath = app.getPath('userData')
-        const dbPath = join(userDataPath, 'allowance-tracker-data.json')
+  try {
+    const userDataPath = app.getPath('userData')
 
-        store = new Store<DatabaseSchema>({
-            name: 'allowance-tracker-data',
-            cwd: userDataPath,
-            defaults: {
-                categories: {},
-                tasks: {},
-                dailyRecords: {},
-                taskExecutions: {},
-                settings: {},
-                version: 1
-            }
-        })
+    stores.categories = new Store<Record<string, Category>>({
+      name: 'categories',
+      cwd: userDataPath,
+      defaults: {}
+    })
+    stores.tasks = new Store<Record<string, Task>>({
+      name: 'tasks',
+      cwd: userDataPath,
+      defaults: {}
+    })
+    stores.dailyRecords = new Store<Record<string, DailyRecord>>({
+      name: 'daily-records',
+      cwd: userDataPath,
+      defaults: {}
+    })
+    stores.taskExecutions = new Store<Record<string, TaskExecution>>({
+      name: 'task-executions',
+      cwd: userDataPath,
+      defaults: {}
+    })
+    stores.settings = new Store<Record<string, string>>({
+      name: 'settings',
+      cwd: userDataPath,
+      defaults: {}
+    })
+    stores.meta = new Store<{ version: number }>({
+      name: 'meta',
+      cwd: userDataPath,
+      defaults: { version: 1 }
+    })
 
-        // データベースのマイグレーション実行
-        await runMigrations()
+    await runMigrations()
+    await initializeDefaultData()
 
-        // デフォルトデータの初期化
-        await initializeDefaultData()
+    console.log('Database initialized successfully at:', userDataPath)
+  } catch (error) {
+    console.error('Failed to initialize database:', error)
+    throw error
+  }
+}
 
-        console.log('Database initialized successfully at:', dbPath)
-    } catch (error) {
-        console.error('Failed to initialize database:', error)
-        throw error
-    }
+const getInternalStore = <K extends keyof Stores>(name: K): Stores[K] => {
+  const store = stores[name]
+  if (!store) throw new Error('Database not initialized')
+  return store
+}
+
+export const getStore = <K extends keyof Stores>(name: K): Stores[K] => {
+  return getInternalStore(name)
+}
+
+const getDataStore = <T>(name: DataStoreKey): Store<Record<string, T>> => {
+  return getInternalStore(name) as unknown as Store<Record<string, T>>
 }
 
 const runMigrations = async (): Promise<void> => {
-    if (!store) throw new Error('Database not initialized')
+  const metaStore = getInternalStore('meta')
+  const currentVersion = metaStore.get('version', 0)
 
-    const currentVersion = store.get('version', 0)
+  if (currentVersion < 1) {
+    console.log('Running migration to version 1...')
 
-    // バージョン1: 初期スキーマ
-    if (currentVersion < 1) {
-        console.log('Running migration to version 1...')
+    await validateDataIntegrity()
 
-        // データ整合性チェック
-        await validateDataIntegrity()
-
-        store.set('version', 1)
-        console.log('Migration to version 1 completed')
-    }
+    metaStore.set('version', 1)
+    console.log('Migration to version 1 completed')
+  }
 }
 
 const validateDataIntegrity = async (): Promise<void> => {
-    if (!store) throw new Error('Database not initialized')
+  const categoryStore = getInternalStore('categories')
+  const taskStore = getInternalStore('tasks')
+  const dailyRecordStore = getInternalStore('dailyRecords')
+  const taskExecutionStore = getInternalStore('taskExecutions')
 
-    const categories = store.get('categories', {})
-    const tasks = store.get('tasks', {})
-    const dailyRecords = store.get('dailyRecords', {})
-    const taskExecutions = store.get('taskExecutions', {})
+  const categories = categoryStore.store as Record<string, Category>
+  const tasks = taskStore.store as Record<string, Task>
+  const dailyRecords = dailyRecordStore.store as Record<string, DailyRecord>
+  const taskExecutions = taskExecutionStore.store as Record<string, TaskExecution>
 
-    // カテゴリの整合性チェック
-    for (const [taskId, task] of Object.entries(tasks)) {
-        if (!categories[task.categoryId]) {
-            console.warn(`Task ${taskId} references non-existent category ${task.categoryId}`)
-            // デフォルトカテゴリに移動
-            task.categoryId = 'other'
-        }
+  for (const task of Object.values(tasks)) {
+    if (!categories[task.categoryId]) {
+      console.warn(`Task ${task.id} references non-existent category ${task.categoryId}`)
+      task.categoryId = 'other'
+      taskStore.set(task.id, task)
     }
+  }
 
-    // タスク実行記録の整合性チェック
-    for (const [executionId, execution] of Object.entries(taskExecutions)) {
-        if (!tasks[execution.taskId]) {
-            console.warn(`Task execution ${executionId} references non-existent task ${execution.taskId}`)
-            // 無効な実行記録を削除
-            delete taskExecutions[executionId]
-        }
-        if (!dailyRecords[execution.dailyRecordId]) {
-            console.warn(`Task execution ${executionId} references non-existent daily record ${execution.dailyRecordId}`)
-            // 無効な実行記録を削除
-            delete taskExecutions[executionId]
-        }
+  for (const execution of Object.values(taskExecutions)) {
+    if (!tasks[execution.taskId] || !dailyRecords[execution.dailyRecordId]) {
+      console.warn(`Removing orphan task execution ${execution.id}`)
+      taskExecutionStore.delete(execution.id)
     }
-
-    // 修正されたデータを保存
-    store.set('tasks', tasks)
-    store.set('taskExecutions', taskExecutions)
+  }
 }
 
 const initializeDefaultData = async (): Promise<void> => {
-    if (!store) throw new Error('Database not initialized')
+  const categoryStore = getInternalStore('categories')
+  const settingsStore = getInternalStore('settings')
 
-    const categories = store.get('categories', {})
+  const categories = categoryStore.store as Record<string, Category>
 
-    // デフォルトカテゴリが存在しない場合のみ追加
-    const defaultCategories: Category[] = [
-        {
-            id: 'help',
-            name: 'お手伝い',
-            color: '#22c55e',
-            icon: '🏠',
-            createdAt: new Date().toISOString()
-        },
-        {
-            id: 'homework',
-            name: '宿題',
-            color: '#3b82f6',
-            icon: '📚',
-            createdAt: new Date().toISOString()
-        },
-        {
-            id: 'other',
-            name: 'その他',
-            color: '#8b5cf6',
-            icon: '⭐',
-            createdAt: new Date().toISOString()
-        }
-    ]
-
-    let hasChanges = false
-    for (const category of defaultCategories) {
-        if (!categories[category.id]) {
-            categories[category.id] = category
-            hasChanges = true
-        }
+  const defaultCategories: Category[] = [
+    {
+      id: 'help',
+      name: 'お手伝い',
+      color: '#22c55e',
+      icon: '🏠',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'homework',
+      name: '宿題',
+      color: '#3b82f6',
+      icon: '📚',
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'other',
+      name: 'その他',
+      color: '#8b5cf6',
+      icon: '⭐',
+      createdAt: new Date().toISOString()
     }
+  ]
 
-    if (hasChanges) {
-        store.set('categories', categories)
-        console.log('Default categories initialized')
+  for (const category of defaultCategories) {
+    if (!categories[category.id]) {
+      categoryStore.set(category.id, category)
     }
+  }
 
-    // デフォルト設定の初期化
-    const settings = store.get('settings', {})
-    const defaultSettings = {
-        childName: '',
-        currency: 'JPY',
-        dateFormat: 'YYYY-MM-DD',
-        theme: 'light'
-    }
+  const settings = settingsStore.store as Record<string, string>
+  const defaultSettings = {
+    childName: '',
+    currency: 'JPY',
+    dateFormat: 'YYYY-MM-DD',
+    theme: 'light'
+  }
 
-    let settingsChanged = false
-    for (const [key, value] of Object.entries(defaultSettings)) {
-        if (!settings[key]) {
-            settings[key] = value
-            settingsChanged = true
-        }
+  for (const [key, value] of Object.entries(defaultSettings)) {
+    if (settings[key] === undefined) {
+      settingsStore.set(key, value)
     }
-
-    if (settingsChanged) {
-        store.set('settings', settings)
-        console.log('Default settings initialized')
-    }
-}
-
-// データベース操作のヘルパー関数
-export const getStore = (): Store<DatabaseSchema> => {
-    if (!store) {
-        throw new Error('Database not initialized')
-    }
-    return store
+  }
 }
 
 export const closeDatabase = (): void => {
-    // electron-store doesn't need explicit closing
-    store = null
+  for (const key of Object.keys(stores) as (keyof Stores)[]) {
+    // electron-store doesn't require explicit close
+    stores[key] = undefined as any
+  }
 }
 
 export const generateId = (): string => {
-    return uuidv4()
+  return uuidv4()
 }
 
-// CRUD操作のヘルパー関数
 export const createRecord = <T extends { id: string }>(
-    table: keyof DatabaseSchema,
-    record: T
+  table: DataStoreKey,
+  record: T
 ): T => {
-    if (!store) throw new Error('Database not initialized')
-
-    const records = store.get(table as any, {}) as Record<string, T>
-    records[record.id] = record
-    store.set(table as any, records)
-
-    return record
+  const store = getDataStore<T>(table)
+  store.set(record.id, record)
+  return record
 }
 
 export const getRecord = <T>(
-    table: keyof DatabaseSchema,
-    id: string
+  table: DataStoreKey,
+  id: string
 ): T | null => {
-    if (!store) throw new Error('Database not initialized')
-
-    const records = store.get(table as any, {}) as Record<string, T>
-    return records[id] || null
+  const store = getDataStore<T>(table)
+  return store.get(id) || null
 }
 
 export const getAllRecords = <T>(
-    table: keyof DatabaseSchema
+  table: DataStoreKey
 ): T[] => {
-    if (!store) throw new Error('Database not initialized')
-
-    const records = store.get(table as any, {}) as Record<string, T>
-    return Object.values(records)
+  const store = getDataStore<T>(table)
+  return Object.values(store.store as Record<string, T>)
 }
 
 export const updateRecord = <T extends { id: string }>(
-    table: keyof DatabaseSchema,
-    id: string,
-    updates: Partial<T>
+  table: DataStoreKey,
+  id: string,
+  updates: Partial<T>
 ): T | null => {
-    if (!store) throw new Error('Database not initialized')
-
-    const records = store.get(table as any, {}) as Record<string, T>
-    const existing = records[id]
-
-    if (!existing) return null
-
-    const updated = { ...existing, ...updates } as T
-    records[id] = updated
-    store.set(table as any, records)
-
-    return updated
+  const store = getDataStore<T>(table)
+  const existing = store.get(id)
+  if (!existing) return null
+  const updated = { ...existing, ...updates }
+  store.set(id, updated as T)
+  return updated as T
 }
 
 export const deleteRecord = (
-    table: keyof DatabaseSchema,
-    id: string
+  table: DataStoreKey,
+  id: string
 ): boolean => {
-    if (!store) throw new Error('Database not initialized')
-
-    const records = store.get(table as any, {}) as Record<string, any>
-
-    if (!records[id]) return false
-
-    delete records[id]
-    store.set(table as any, records)
-
-    return true
+  const store = getDataStore<any>(table)
+  if (!store.has(id)) return false
+  store.delete(id)
+  return true
 }
 
-// データベースバックアップ機能
 export const createBackup = (): string => {
-    if (!store) throw new Error('Database not initialized')
+  const categories = getInternalStore('categories').store
+  const tasks = getInternalStore('tasks').store
+  const dailyRecords = getInternalStore('dailyRecords').store
+  const taskExecutions = getInternalStore('taskExecutions').store
+  const settings = getInternalStore('settings').store
+  const version = getInternalStore('meta').get('version', 1)
 
-    const allData = {
-        categories: store.get('categories'),
-        tasks: store.get('tasks'),
-        dailyRecords: store.get('dailyRecords'),
-        taskExecutions: store.get('taskExecutions'),
-        settings: store.get('settings'),
-        version: store.get('version'),
-        backupDate: new Date().toISOString()
-    }
+  const allData = {
+    categories,
+    tasks,
+    dailyRecords,
+    taskExecutions,
+    settings,
+    version,
+    backupDate: new Date().toISOString()
+  }
 
-    return JSON.stringify(allData, null, 2)
+  return JSON.stringify(allData, null, 2)
 }
 
 export const restoreFromBackup = (backupData: string): void => {
-    if (!store) throw new Error('Database not initialized')
+  try {
+    const data = JSON.parse(backupData)
 
-    try {
-        const data = JSON.parse(backupData)
-
-        // バックアップデータの検証
-        if (!data.categories || !data.tasks || !data.dailyRecords || !data.taskExecutions) {
-            throw new Error('Invalid backup data format')
-        }
-
-        // データを復元
-        store.set('categories', data.categories)
-        store.set('tasks', data.tasks)
-        store.set('dailyRecords', data.dailyRecords)
-        store.set('taskExecutions', data.taskExecutions)
-        store.set('settings', data.settings || {})
-        store.set('version', data.version || 1)
-
-        console.log('Database restored from backup successfully')
-    } catch (error) {
-        console.error('Failed to restore from backup:', error)
-        throw new Error('バックアップファイルの形式が正しくありません')
+    if (!data.categories || !data.tasks || !data.dailyRecords || !data.taskExecutions) {
+      throw new Error('Invalid backup data format')
     }
+
+    const categoryStore = getInternalStore('categories')
+    const taskStore = getInternalStore('tasks')
+    const dailyRecordStore = getInternalStore('dailyRecords')
+    const taskExecutionStore = getInternalStore('taskExecutions')
+    const settingsStore = getInternalStore('settings')
+    const metaStore = getInternalStore('meta')
+
+    categoryStore.clear()
+    for (const [id, value] of Object.entries<Record<string, Category>>(data.categories)) {
+      categoryStore.set(id, value)
+    }
+
+    taskStore.clear()
+    for (const [id, value] of Object.entries<Record<string, Task>>(data.tasks)) {
+      taskStore.set(id, value)
+    }
+
+    dailyRecordStore.clear()
+    for (const [id, value] of Object.entries<Record<string, DailyRecord>>(data.dailyRecords)) {
+      dailyRecordStore.set(id, value)
+    }
+
+    taskExecutionStore.clear()
+    for (const [id, value] of Object.entries<Record<string, TaskExecution>>(data.taskExecutions)) {
+      taskExecutionStore.set(id, value)
+    }
+
+    settingsStore.clear()
+    for (const [key, value] of Object.entries<Record<string, string>>(data.settings || {})) {
+      settingsStore.set(key, value)
+    }
+
+    metaStore.set('version', data.version || 1)
+
+    console.log('Database restored from backup successfully')
+  } catch (error) {
+    console.error('Failed to restore from backup:', error)
+    throw new Error('バックアップファイルの形式が正しくありません')
+  }
 }
 
-// データベース統計情報
 export const getDatabaseStats = () => {
-    if (!store) throw new Error('Database not initialized')
+  const categories = getInternalStore('categories').store as Record<string, Category>
+  const tasks = getInternalStore('tasks').store as Record<string, Task>
+  const dailyRecords = getInternalStore('dailyRecords').store as Record<string, DailyRecord>
+  const taskExecutions = getInternalStore('taskExecutions').store as Record<string, TaskExecution>
 
-    const categories = store.get('categories', {})
-    const tasks = store.get('tasks', {})
-    const dailyRecords = store.get('dailyRecords', {})
-    const taskExecutions = store.get('taskExecutions', {})
-
-    return {
-        categoriesCount: Object.keys(categories).length,
-        tasksCount: Object.keys(tasks).length,
-        dailyRecordsCount: Object.keys(dailyRecords).length,
-        taskExecutionsCount: Object.keys(taskExecutions).length,
-        databaseVersion: store.get('version', 0)
-    }
+  return {
+    categoriesCount: Object.keys(categories).length,
+    tasksCount: Object.keys(tasks).length,
+    dailyRecordsCount: Object.keys(dailyRecords).length,
+    taskExecutionsCount: Object.keys(taskExecutions).length,
+    databaseVersion: getInternalStore('meta').get('version', 0)
+  }
 }
 
-// 型エクスポート
 export type { Category, Task, DailyRecord, TaskExecution, DatabaseSchema }
+
