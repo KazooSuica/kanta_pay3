@@ -21,7 +21,8 @@
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "clean": "rimraf dist release",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "migrate:data": "node scripts/migrate-to-entity-stores.js"
   },
   "keywords": [
     "electron",
