@@ -1,6 +1,9 @@
 import Store from 'electron-store'
 import { v4 as uuidv4 } from 'uuid'
 import { app } from 'electron'
+import path from 'path'
+import fs from 'fs'
+import { getMonthlyStore, listMonthlyFiles } from './monthly-store'
 
 // 型定義
 interface Category {
@@ -52,49 +55,38 @@ interface DatabaseSchema {
 type Stores = {
   categories: Store<Record<string, Category>>
   tasks: Store<Record<string, Task>>
-  dailyRecords: Store<Record<string, DailyRecord>>
-  taskExecutions: Store<Record<string, TaskExecution>>
   settings: Store<Record<string, string>>
   meta: Store<{ version: number }>
 }
 
-type DataStoreKey = keyof Pick<Stores, 'categories' | 'tasks' | 'dailyRecords' | 'taskExecutions'>
+type RegularStoreKey = keyof Pick<Stores, 'categories' | 'tasks'>
+type DataStoreKey = RegularStoreKey | 'dailyRecords' | 'taskExecutions'
 
 const stores: Partial<Stores> = {}
 
 export const setupDatabase = async (): Promise<void> => {
   try {
-    const userDataPath = app.getPath('userData')
+    userDataPath = app.getPath('userData')
 
     stores.categories = new Store<Record<string, Category>>({
       name: 'categories',
       cwd: userDataPath,
-      defaults: {}
+      defaults: {},
     })
     stores.tasks = new Store<Record<string, Task>>({
       name: 'tasks',
       cwd: userDataPath,
-      defaults: {}
-    })
-    stores.dailyRecords = new Store<Record<string, DailyRecord>>({
-      name: 'daily-records',
-      cwd: userDataPath,
-      defaults: {}
-    })
-    stores.taskExecutions = new Store<Record<string, TaskExecution>>({
-      name: 'task-executions',
-      cwd: userDataPath,
-      defaults: {}
+      defaults: {},
     })
     stores.settings = new Store<Record<string, string>>({
       name: 'settings',
       cwd: userDataPath,
-      defaults: {}
+      defaults: {},
     })
     stores.meta = new Store<{ version: number }>({
       name: 'meta',
       cwd: userDataPath,
-      defaults: { version: 1 }
+      defaults: { version: 1 },
     })
 
     await runMigrations()
@@ -117,9 +109,12 @@ export const getStore = <K extends keyof Stores>(name: K): Stores[K] => {
   return getInternalStore(name)
 }
 
-const getDataStore = <T>(name: DataStoreKey): Store<Record<string, T>> => {
+const getDataStore = <T>(name: RegularStoreKey): Store<Record<string, T>> => {
   return getInternalStore(name) as unknown as Store<Record<string, T>>
 }
+
+const monthlyBase = (table: 'dailyRecords' | 'taskExecutions') =>
+  table === 'dailyRecords' ? 'daily-records' : 'task-executions'
 
 const runMigrations = async (): Promise<void> => {
   const metaStore = getInternalStore('meta')
@@ -138,13 +133,12 @@ const runMigrations = async (): Promise<void> => {
 const validateDataIntegrity = async (): Promise<void> => {
   const categoryStore = getInternalStore('categories')
   const taskStore = getInternalStore('tasks')
-  const dailyRecordStore = getInternalStore('dailyRecords')
-  const taskExecutionStore = getInternalStore('taskExecutions')
-
   const categories = categoryStore.store as Record<string, Category>
   const tasks = taskStore.store as Record<string, Task>
-  const dailyRecords = dailyRecordStore.store as Record<string, DailyRecord>
-  const taskExecutions = taskExecutionStore.store as Record<string, TaskExecution>
+  const dailyRecords = getAllRecords<DailyRecord>('dailyRecords')
+  const taskExecutions = getAllRecords<TaskExecution>('taskExecutions')
+
+  const dailyRecordMap = Object.fromEntries(dailyRecords.map(r => [r.id, r]))
 
   for (const task of Object.values(tasks)) {
     if (!categories[task.categoryId]) {
@@ -154,10 +148,10 @@ const validateDataIntegrity = async (): Promise<void> => {
     }
   }
 
-  for (const execution of Object.values(taskExecutions)) {
-    if (!tasks[execution.taskId] || !dailyRecords[execution.dailyRecordId]) {
+  for (const execution of taskExecutions) {
+    if (!tasks[execution.taskId] || !dailyRecordMap[execution.dailyRecordId]) {
       console.warn(`Removing orphan task execution ${execution.id}`)
-      taskExecutionStore.delete(execution.id)
+      deleteRecord('taskExecutions', execution.id)
     }
   }
 }
@@ -226,34 +220,93 @@ export const generateId = (): string => {
 
 export const createRecord = <T extends { id: string }>(
   table: DataStoreKey,
-  record: T
+  record: T,
+  options?: { date?: string }
 ): T => {
-  const store = getDataStore<T>(table)
+  if (table === 'dailyRecords') {
+    const date = (record as any).date || options?.date
+    if (!date) throw new Error('Date required for dailyRecords')
+    const [year, month] = date.split('-')
+    const store = getMonthlyStore<DailyRecord>(monthlyBase('dailyRecords'), year, month)
+    store.set(record.id, record as any)
+    return record
+  }
+  if (table === 'taskExecutions') {
+    const date = options?.date
+    if (!date) throw new Error('Date required for taskExecutions')
+    const [year, month] = date.split('-')
+    const store = getMonthlyStore<TaskExecution>(monthlyBase('taskExecutions'), year, month)
+    store.set(record.id, record as any)
+    return record
+  }
+  const store = getDataStore<T>(table as RegularStoreKey)
   store.set(record.id, record)
   return record
 }
 
 export const getRecord = <T>(
   table: DataStoreKey,
-  id: string
+  id: string,
+  options?: { date?: string }
 ): T | null => {
-  const store = getDataStore<T>(table)
+  if (table === 'dailyRecords' || table === 'taskExecutions') {
+    const records = getAllRecords<T>(table, options)
+    return records.find((r: any) => r.id === id) || null
+  }
+  const store = getDataStore<T>(table as RegularStoreKey)
   return store.get(id) || null
 }
 
 export const getAllRecords = <T>(
-  table: DataStoreKey
+  table: DataStoreKey,
+  options?: { date?: string }
 ): T[] => {
-  const store = getDataStore<T>(table)
+  if (table === 'dailyRecords' || table === 'taskExecutions') {
+    const base = monthlyBase(table)
+    const records: T[] = []
+    if (options?.date) {
+      const [year, month] = options.date.split('-')
+      const store = getMonthlyStore<T>(base, year, month)
+      records.push(...Object.values(store.store as Record<string, T>))
+    } else {
+      for (const { year, month } of listMonthlyFiles(base)) {
+        const store = getMonthlyStore<T>(base, year, month)
+        records.push(...Object.values(store.store as Record<string, T>))
+      }
+    }
+    return records
+  }
+  const store = getDataStore<T>(table as RegularStoreKey)
   return Object.values(store.store as Record<string, T>)
 }
 
 export const updateRecord = <T extends { id: string }>(
   table: DataStoreKey,
   id: string,
-  updates: Partial<T>
+  updates: Partial<T>,
+  options?: { date?: string }
 ): T | null => {
-  const store = getDataStore<T>(table)
+  if (table === 'dailyRecords' || table === 'taskExecutions') {
+    const base = monthlyBase(table)
+    const applyUpdate = (year: string, month: string): T | null => {
+      const store = getMonthlyStore<T>(base, year, month)
+      const existing = store.get(id) as T | undefined
+      if (!existing) return null
+      const updated = { ...existing, ...updates } as T
+      store.set(id, updated)
+      return updated
+    }
+    if (options?.date) {
+      const [y, m] = options.date.split('-')
+      return applyUpdate(y, m)
+    }
+    for (const { year, month } of listMonthlyFiles(base)) {
+      const res = applyUpdate(year, month)
+      if (res) return res
+    }
+    return null
+  }
+  const store = getDataStore<T>(table as RegularStoreKey)
   const existing = store.get(id)
   if (!existing) return null
   const updated = { ...existing, ...updates }
@@ -263,9 +316,27 @@ export const updateRecord = <T extends { id: string }>(
 
 export const deleteRecord = (
   table: DataStoreKey,
-  id: string
+  id: string,
+  options?: { date?: string }
 ): boolean => {
-  const store = getDataStore<any>(table)
+  if (table === 'dailyRecords' || table === 'taskExecutions') {
+    const base = monthlyBase(table)
+    const remove = (year: string, month: string): boolean => {
+      const store = getMonthlyStore<any>(base, year, month)
+      if (!store.has(id)) return false
+      store.delete(id)
+      return true
+    }
+    if (options?.date) {
+      const [y, m] = options.date.split('-')
+      return remove(y, m)
+    }
+    for (const { year, month } of listMonthlyFiles(base)) {
+      if (remove(year, month)) return true
+    }
+    return false
+  }
+  const store = getDataStore<any>(table as RegularStoreKey)
   if (!store.has(id)) return false
   store.delete(id)
   return true
@@ -274,10 +345,17 @@ export const deleteRecord = (
 export const createBackup = (): string => {
   const categories = getInternalStore('categories').store
   const tasks = getInternalStore('tasks').store
-  const dailyRecords = getInternalStore('dailyRecords').store
-  const taskExecutions = getInternalStore('taskExecutions').store
+  const dailyRecordsArr = getAllRecords<DailyRecord>('dailyRecords')
+  const taskExecutionsArr = getAllRecords<TaskExecution>('taskExecutions')
   const settings = getInternalStore('settings').store
   const version = getInternalStore('meta').get('version', 1)
+
+  const dailyRecords = Object.fromEntries(
+    dailyRecordsArr.map(r => [r.id, r])
+  )
+  const taskExecutions = Object.fromEntries(
+    taskExecutionsArr.map(e => [e.id, e])
+  )
 
   const allData = {
     categories,
@@ -302,8 +380,6 @@ export const restoreFromBackup = (backupData: string): void => {
 
     const categoryStore = getInternalStore('categories')
     const taskStore = getInternalStore('tasks')
-    const dailyRecordStore = getInternalStore('dailyRecords')
-    const taskExecutionStore = getInternalStore('taskExecutions')
     const settingsStore = getInternalStore('settings')
     const metaStore = getInternalStore('meta')
 
@@ -316,15 +392,23 @@ export const restoreFromBackup = (backupData: string): void => {
     for (const [id, value] of Object.entries<Record<string, Task>>(data.tasks)) {
       taskStore.set(id, value)
     }
+    fs.rmSync(path.join(userDataPath, 'daily-records'), { recursive: true, force: true })
+    fs.rmSync(path.join(userDataPath, 'task-executions'), { recursive: true, force: true })
 
-    dailyRecordStore.clear()
-    for (const [id, value] of Object.entries<Record<string, DailyRecord>>(data.dailyRecords)) {
-      dailyRecordStore.set(id, value)
+    for (const value of Object.values<Record<string, DailyRecord>>(data.dailyRecords)) {
+      createRecord('dailyRecords', value)
     }
 
-    taskExecutionStore.clear()
-    for (const [id, value] of Object.entries<Record<string, TaskExecution>>(data.taskExecutions)) {
-      taskExecutionStore.set(id, value)
+    const recordDateMap: Record<string, string> = {}
+    for (const value of Object.values<Record<string, DailyRecord>>(data.dailyRecords)) {
+      recordDateMap[value.id] = value.date
+    }
+
+    for (const value of Object.values<Record<string, TaskExecution>>(data.taskExecutions)) {
+      const date = recordDateMap[value.dailyRecordId]
+      if (date) {
+        createRecord('taskExecutions', value, { date })
+      }
     }
 
     settingsStore.clear()
@@ -344,14 +428,14 @@ export const restoreFromBackup = (backupData: string): void => {
 export const getDatabaseStats = () => {
   const categories = getInternalStore('categories').store as Record<string, Category>
   const tasks = getInternalStore('tasks').store as Record<string, Task>
-  const dailyRecords = getInternalStore('dailyRecords').store as Record<string, DailyRecord>
-  const taskExecutions = getInternalStore('taskExecutions').store as Record<string, TaskExecution>
+  const dailyRecordsCount = getAllRecords<DailyRecord>('dailyRecords').length
+  const taskExecutionsCount = getAllRecords<TaskExecution>('taskExecutions').length
 
   return {
     categoriesCount: Object.keys(categories).length,
     tasksCount: Object.keys(tasks).length,
-    dailyRecordsCount: Object.keys(dailyRecords).length,
-    taskExecutionsCount: Object.keys(taskExecutions).length,
+    dailyRecordsCount,
+    taskExecutionsCount,
     databaseVersion: getInternalStore('meta').get('version', 0)
   }
 }

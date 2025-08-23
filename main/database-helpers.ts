@@ -140,7 +140,7 @@ export const taskHelpers = {
 export const dailyRecordHelpers = {
   // 日付で記録を取得
   getByDate: (date: string): DailyRecord | null => {
-    const records = getAllRecords<DailyRecord>('dailyRecords')
+    const records = getAllRecords<DailyRecord>('dailyRecords', { date })
     return records.find(record => record.date === date) || null
   },
 
@@ -169,19 +169,19 @@ export const dailyRecordHelpers = {
     }, 0)
     
     let dailyRecord: DailyRecord
-    
+
     if (existing) {
       // 既存記録を更新
       dailyRecord = updateRecord<DailyRecord>('dailyRecords', existing.id, {
         totalAmount,
         updatedAt: now
-      })!
-      
+      }, { date })!
+
       // 既存のタスク実行記録を削除
-      const allExecutions = getAllRecords<TaskExecution>('taskExecutions')
+      const allExecutions = getAllRecords<TaskExecution>('taskExecutions', { date })
       const executionsToDelete = allExecutions.filter(execution => execution.dailyRecordId === existing.id)
       for (const execution of executionsToDelete) {
-        deleteRecord('taskExecutions', execution.id)
+        deleteRecord('taskExecutions', execution.id, { date })
       }
     } else {
       // 新しい記録を作成
@@ -193,7 +193,7 @@ export const dailyRecordHelpers = {
         updatedAt: now
       })
     }
-    
+
     // タスク実行記録を保存
     for (const executionData of taskExecutions) {
       const execution: TaskExecution = {
@@ -201,7 +201,7 @@ export const dailyRecordHelpers = {
         dailyRecordId: dailyRecord.id,
         ...executionData
       }
-      createRecord('taskExecutions', execution)
+      createRecord('taskExecutions', execution, { date })
     }
     
     return dailyRecord
@@ -210,22 +210,25 @@ export const dailyRecordHelpers = {
   // 記録を削除
   delete: (id: string): boolean => {
     // 関連するタスク実行記録も削除
-    const taskExecutions = getAllRecords<TaskExecution>('taskExecutions')
+    const allRecords = getAllRecords<DailyRecord>('dailyRecords')
+    const record = allRecords.find(r => r.id === id)
+    if (!record) return false
+    const taskExecutions = getAllRecords<TaskExecution>('taskExecutions', { date: record.date })
     const executionsToDelete = taskExecutions.filter(execution => execution.dailyRecordId === id)
-    
+
     for (const execution of executionsToDelete) {
-      deleteRecord('taskExecutions', execution.id)
+      deleteRecord('taskExecutions', execution.id, { date: record.date })
     }
-    
-    return deleteRecord('dailyRecords', id)
+
+    return deleteRecord('dailyRecords', id, { date: record.date })
   }
 }
 
 // タスク実行記録関連のヘルパー関数
 export const taskExecutionHelpers = {
   // 日次記録IDで実行記録を取得
-  getByDailyRecordId: (dailyRecordId: string): TaskExecution[] => {
-    const executions = getAllRecords<TaskExecution>('taskExecutions')
+  getByDailyRecordId: (dailyRecordId: string, date?: string): TaskExecution[] => {
+    const executions = getAllRecords<TaskExecution>('taskExecutions', date ? { date } : undefined)
     return executions.filter(execution => execution.dailyRecordId === dailyRecordId)
   },
 
@@ -317,7 +320,7 @@ export const analyticsHelpers = {
       let totalCount = 0
       
       for (const record of records) {
-        const executions = taskExecutionHelpers.getByDailyRecordId(record.id)
+        const executions = taskExecutionHelpers.getByDailyRecordId(record.id, record.date)
         for (const execution of executions) {
           const task = categoryTasks.find(t => t.id === execution.taskId)
           if (task) {

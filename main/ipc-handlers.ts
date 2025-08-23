@@ -483,7 +483,7 @@ export const setupIpcHandlers = (): void => {
   // Daily records operations
   ipcMain.handle('daily-records:get', async (event, date) => {
     try {
-      const dailyRecords = getAllRecords<DailyRecord>('dailyRecords')
+      const dailyRecords = getAllRecords<DailyRecord>('dailyRecords', { date })
       const record = dailyRecords.find(record => record.date === date)
       
       if (!record) {
@@ -491,7 +491,7 @@ export const setupIpcHandlers = (): void => {
       }
       
       // 関連するタスク実行記録も取得
-      const taskExecutions = getAllRecords<TaskExecution>('taskExecutions')
+      const taskExecutions = getAllRecords<TaskExecution>('taskExecutions', { date })
       const recordExecutions = taskExecutions.filter(execution => execution.dailyRecordId === record.id)
       
       return { 
@@ -512,7 +512,7 @@ export const setupIpcHandlers = (): void => {
       const { date, taskExecutions } = recordData
       
       // 既存の記録があるかチェック
-      const dailyRecords = getAllRecords<DailyRecord>('dailyRecords')
+      const dailyRecords = getAllRecords<DailyRecord>('dailyRecords', { date })
       let existingRecord = dailyRecords.find(record => record.date === date)
       
       // 合計金額を計算
@@ -522,20 +522,20 @@ export const setupIpcHandlers = (): void => {
       
       let dailyRecord: DailyRecord
       
-      if (existingRecord) {
-        // 既存記録を更新
-        dailyRecord = updateRecord<DailyRecord>('dailyRecords', existingRecord.id, {
-          totalAmount,
-          updatedAt: new Date().toISOString()
-        })!
-        
-        // 既存のタスク実行記録を削除
-        const allExecutions = getAllRecords<TaskExecution>('taskExecutions')
-        const executionsToDelete = allExecutions.filter(execution => execution.dailyRecordId === existingRecord.id)
-        for (const execution of executionsToDelete) {
-          deleteRecord('taskExecutions', execution.id)
-        }
-      } else {
+        if (existingRecord) {
+          // 既存記録を更新
+          dailyRecord = updateRecord<DailyRecord>('dailyRecords', existingRecord.id, {
+            totalAmount,
+            updatedAt: new Date().toISOString()
+          }, { date })!
+
+          // 既存のタスク実行記録を削除
+          const allExecutions = getAllRecords<TaskExecution>('taskExecutions', { date })
+          const executionsToDelete = allExecutions.filter(execution => execution.dailyRecordId === existingRecord.id)
+          for (const execution of executionsToDelete) {
+            deleteRecord('taskExecutions', execution.id, { date })
+          }
+        } else {
         // 新しい記録を作成
         dailyRecord = createRecord('dailyRecords', {
           id: generateId(),
@@ -560,7 +560,7 @@ export const setupIpcHandlers = (): void => {
           adjustedAt: executionData.adjustedAt
         }
         
-        const savedExecution = createRecord('taskExecutions', execution)
+          const savedExecution = createRecord('taskExecutions', execution, { date })
         savedExecutions.push(savedExecution)
       }
       
@@ -659,7 +659,7 @@ export const setupIpcHandlers = (): void => {
  // Calculation operations
   ipcMain.handle('calculation:calculate', async (event, date) => {
     try {
-      const dailyRecords = getAllRecords<DailyRecord>('dailyRecords')
+      const dailyRecords = getAllRecords<DailyRecord>('dailyRecords', { date })
       const record = dailyRecords.find(record => record.date === date)
       
       if (!record) {
@@ -667,7 +667,7 @@ export const setupIpcHandlers = (): void => {
       }
       
       // 関連するタスク実行記録を取得
-      const taskExecutions = getAllRecords<TaskExecution>('taskExecutions')
+      const taskExecutions = getAllRecords<TaskExecution>('taskExecutions', { date })
       const recordExecutions = taskExecutions.filter(execution => execution.dailyRecordId === record.id)
       
       // タスクとカテゴリ情報を取得
