@@ -162,8 +162,10 @@ const DailyInputPage: React.FC = () => {
   }
 
   const handleClear = () => {
-    setSelectedTasks({})
-    setIsEditing(false)
+    if (window.confirm('入力内容をクリアしますか？')) {
+      setSelectedTasks({})
+      setIsEditing(false)
+    }
   }
 
   if (isLoading) {
