@@ -475,7 +475,7 @@ const TaskManagementPage: React.FC = () => {
             <Link to="/calculation">
               <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center">
                 <span className="text-2xl mr-2">🧮</span>
-                お小遣いを計算する
+                おこづかいを計算する
               </button>
             </Link>
             <Link to="/">

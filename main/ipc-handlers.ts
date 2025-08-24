@@ -317,7 +317,7 @@ const generatePrintHTML = (printData: any): string => {
 
         <!-- フッター -->
         <div class="print-footer">
-          お小遣い請求アプリで作成 - ${new Date().toLocaleDateString('ja-JP')}
+          おこづかい請求アプリで作成 - ${new Date().toLocaleDateString('ja-JP')}
         </div>
       </div>
     </body>
@@ -1057,7 +1057,7 @@ export const setupIpcHandlers = (): void => {
       // 保存先を選択
       const result = await dialog.showSaveDialog({
         title: 'PDFファイルを保存',
-        defaultPath: `お小遣い請求書_${printData.date}_${printData.childName}.pdf`,
+        defaultPath: `おこづかい請求書_${printData.date}_${printData.childName}.pdf`,
         filters: [
           { name: 'PDF Files', extensions: ['pdf'] }
         ]

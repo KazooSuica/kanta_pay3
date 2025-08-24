@@ -42,7 +42,7 @@ export interface TaskExecution {
   adjustedAt?: string
 }
 
-// お小遣い計算結果
+// おこづかい計算結果
 export interface AllowanceCalculation {
   date: string
   categoryBreakdown: CategorySummary[]

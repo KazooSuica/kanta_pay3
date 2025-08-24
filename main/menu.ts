@@ -76,7 +76,7 @@ export const createApplicationMenu = (): Menu => {
           click: () => navigateToPage('/daily-input')
         },
         {
-          label: 'お小遣い計算',
+          label: 'おこづかい計算',
           accelerator: 'CmdOrCtrl+4',
           click: () => navigateToPage('/calculation')
         },
@@ -116,13 +116,13 @@ export const createApplicationMenu = (): Menu => {
       label: 'ヘルプ',
       submenu: [
         {
-          label: 'お小遣い請求アプリについて',
+          label: 'おこづかい請求アプリについて',
           click: () => {
             require('electron').dialog.showMessageBox({
               type: 'info',
-              title: 'お小遣い請求アプリについて',
-              message: 'お小遣い請求アプリ',
-              detail: `バージョン: ${getAppVersion()}\n\n小学生向けタスク管理とお小遣い計算アプリです。\n日々のお手伝いや宿題を記録して、お小遣いを計算できます。`,
+              title: 'おこづかい請求アプリについて',
+              message: 'おこづかい請求アプリ',
+              detail: `バージョン: ${getAppVersion()}\n\n小学生向けタスク管理とおこづかい計算アプリです。\n日々のお手伝いや宿題を記録して、おこづかいを計算できます。`,
               buttons: ['OK']
             })
           }
@@ -134,7 +134,7 @@ export const createApplicationMenu = (): Menu => {
               type: 'info',
               title: '使い方',
               message: '基本的な使い方',
-              detail: '1. タスク管理でお手伝いや宿題を登録します\n2. 毎日のタスク入力で実行したタスクを記録します\n3. お小遣い計算で金額を確認・印刷できます\n4. 履歴で過去の記録を確認できます',
+              detail: '1. タスク管理でお手伝いや宿題を登録します\n2. 毎日のタスク入力で実行したタスクを記録します\n3. おこづかい計算で金額を確認・印刷できます\n4. 履歴で過去の記録を確認できます',
               buttons: ['OK']
             })
           }
@@ -146,13 +146,13 @@ export const createApplicationMenu = (): Menu => {
   // macOS specific menu adjustments
   if (process.platform === 'darwin') {
     template.unshift({
-      label: 'お小遣い請求アプリ',
+      label: 'おこづかい請求アプリ',
       submenu: [
-        { label: 'お小遣い請求アプリについて', role: 'about' },
+        { label: 'おこづかい請求アプリについて', role: 'about' },
         { type: 'separator' },
         { label: 'サービス', role: 'services', submenu: [] },
         { type: 'separator' },
-        { label: 'お小遣い請求アプリを隠す', accelerator: 'Command+H', role: 'hide' },
+        { label: 'おこづかい請求アプリを隠す', accelerator: 'Command+H', role: 'hide' },
         { label: '他を隠す', accelerator: 'Command+Shift+H', role: 'hideOthers' },
         { label: 'すべて表示', role: 'unhide' },
         { type: 'separator' },

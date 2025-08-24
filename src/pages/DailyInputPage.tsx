@@ -422,7 +422,7 @@ const DailyInputPage: React.FC = () => {
               <Link to="/calculation">
                 <button className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-medium inline-flex items-center justify-center">
                   <span className="text-xl mr-2">🧮</span>
-                  お小遣い計算
+                  おこづかい計算
                 </button>
               </Link>
               <Link to="/history">

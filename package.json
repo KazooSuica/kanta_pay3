@@ -1,7 +1,7 @@
 {
   "name": "allowance-tracker",
   "version": "0.0.1-beta",
-  "description": "お小遣い請求アプリ - 小学生向けタスク管理とお小遣い計算アプリ",
+  "description": "おこづかい請求アプリ - 小学生向けタスク管理とおこづかい計算アプリ",
   "main": "dist/main/main.js",
   "homepage": "./",
   "scripts": {
@@ -63,7 +63,7 @@
   },
   "build": {
     "appId": "com.allowancetracker.app",
-    "productName": "お小遣い請求アプリ",
+    "productName": "おこづかい請求アプリ",
     "directories": {
       "output": "release",
       "buildResources": "assets"
@@ -129,10 +129,10 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "お小遣い請求アプリ"
+      "shortcutName": "おこづかい請求アプリ"
     },
     "dmg": {
-      "title": "お小遣い請求アプリ",
+      "title": "おこづかい請求アプリ",
       "backgroundColor": "#ffffff"
     }
   },
