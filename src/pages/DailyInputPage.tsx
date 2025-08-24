@@ -161,10 +161,18 @@ const DailyInputPage: React.FC = () => {
     }
   }
 
-  const handleClear = () => {
+  const handleClear = async () => {
     if (window.confirm('入力内容をクリアしますか？')) {
-      setSelectedTasks({})
-      setIsEditing(false)
+      try {
+        if (isEditing) {
+          await window.electronAPI.deleteDailyRecord(currentDate)
+        }
+        setSelectedTasks({})
+        setIsEditing(false)
+      } catch (error) {
+        console.error('[DailyInputPage] Error deleting record:', error)
+        alert('記録の削除に失敗しました')
+      }
     }
   }
 
