@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import BottomNavigation from '../components/common/BottomNavigation'
 
@@ -9,6 +9,7 @@ const CalculationPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return new Date().toISOString().split('T')[0]
   })
+  const dateInputRef = useRef<HTMLInputElement>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [calculation, setCalculation] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
@@ -179,35 +180,52 @@ const CalculationPage: React.FC = () => {
         <p className="text-gray-600">
           今日やったタスクからおこづかいを計算しよう
         </p>
+        <div className="flex justify-center items-center mt-4">
+          <div className="text-lg font-medium text-blue-600">
+            {new Date(selectedDate).toLocaleDateString('ja-JP', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              weekday: 'long'
+            })}
+          </div>
+          <button
+            onClick={() => dateInputRef.current?.showPicker()}
+            className="ml-2 text-blue-600 hover:text-blue-800"
+            aria-label="日付を選択"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </button>
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={selectedDate}
+            onChange={handleDateChange}
+            className="hidden"
+          />
+        </div>
       </div>
 
-      {/* 日付選択 */}
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-          📅 計算する日付を選んでください
+          🧮 おこづかいを計算する
         </h2>
-        
-        <div className="flex flex-col sm:flex-row gap-4 items-center">
-          <div className="flex-1">
-            <input
-              id="calculation-date"
-              type="date"
-              value={selectedDate}
-              onChange={handleDateChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
-              disabled={isLoading}
-            />
-          </div>
 
-          <div className="flex gap-2">
-            <button
-              onClick={handleCalculate}
-              disabled={!selectedDate || isLoading}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md font-medium"
-            >
-              {isLoading ? '計算中...' : '計算する'}
-            </button>
-          </div>
+        <div className="flex justify-center">
+          <button
+            onClick={handleCalculate}
+            disabled={!selectedDate || isLoading}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md font-medium"
+          >
+            {isLoading ? '計算中...' : '計算する'}
+          </button>
         </div>
       </div>
 
