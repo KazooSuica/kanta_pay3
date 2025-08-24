@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import BottomNavigation from '../components/common/BottomNavigation'
 import { Task, Category } from '../types'
 import {
   validateDailyInput,
@@ -254,7 +255,8 @@ const DailyInputPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <>
+      <div className="max-w-6xl mx-auto pb-24">
       {/* ヘッダー */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -413,35 +415,11 @@ const DailyInputPage: React.FC = () => {
             </div>
           )}
 
-          {/* ナビゲーション */}
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">
-              その他の機能
-            </h3>
-            <div className="space-y-3">
-              <Link to="/calculation">
-                <button className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-medium inline-flex items-center justify-center">
-                  <span className="text-xl mr-2">🧮</span>
-                  おこづかい計算
-                </button>
-              </Link>
-              <Link to="/history">
-                <button className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-medium inline-flex items-center justify-center">
-                  <span className="text-xl mr-2">📊</span>
-                  履歴を見る
-                </button>
-              </Link>
-              <Link to="/">
-                <button className="w-full bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-medium inline-flex items-center justify-center">
-                  <span className="text-xl mr-2">🏠</span>
-                  ホームに戻る
-                </button>
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
-    </div>
+      </div>
+      <BottomNavigation current="daily-input" />
+    </>
   )
 }
 
