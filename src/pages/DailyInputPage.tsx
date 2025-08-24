@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import BottomNavigation from '../components/common/BottomNavigation'
 import { Task, Category } from '../types'
@@ -15,14 +15,16 @@ const DailyInputPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedTasks, setSelectedTasks] = useState<Record<string, number>>({})
-  const [currentDate] = useState(() => new Date().toISOString().split('T')[0])
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0])
   const [activeCategoryId, setActiveCategoryId] = useState<string>('')
   const [isEditing, setIsEditing] = useState(false)
+  const dateInputRef = useRef<HTMLInputElement>(null)
 
-  // データの初期読み込み
+  // カテゴリとタスクの初期読み込み
   useEffect(() => {
     const loadData = async () => {
       try {
+        setIsLoading(true)
         console.log('[DailyInputPage] Loading data...')
         const [categoriesResponse, tasksResponse] = await Promise.all([
           window.electronAPI.getAllCategories(),
@@ -45,18 +47,6 @@ const DailyInputPage: React.FC = () => {
         } else {
           throw new Error('タスクの読み込みに失敗しました')
         }
-
-        // 既存の記録を読み込み
-        const existingRecord = await window.electronAPI.getDailyRecord(currentDate)
-        if (existingRecord.success && existingRecord.data) {
-          const initialSelected: Record<string, number> = {}
-          for (const exec of existingRecord.data.taskExecutions) {
-            initialSelected[exec.taskId] = exec.count
-          }
-          setSelectedTasks(initialSelected)
-          setIsEditing(true)
-          console.log('[DailyInputPage] Existing record loaded')
-        }
       } catch (error) {
         console.error('[DailyInputPage] Error loading data:', error)
         setError('データの読み込みに失敗しました')
@@ -67,6 +57,36 @@ const DailyInputPage: React.FC = () => {
 
     loadData()
   }, [])
+
+  // 選択した日の記録を読み込み
+  useEffect(() => {
+    const loadRecord = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+        const existingRecord = await window.electronAPI.getDailyRecord(selectedDate)
+        if (existingRecord.success && existingRecord.data) {
+          const initialSelected: Record<string, number> = {}
+          for (const exec of existingRecord.data.taskExecutions) {
+            initialSelected[exec.taskId] = exec.count
+          }
+          setSelectedTasks(initialSelected)
+          setIsEditing(true)
+          console.log('[DailyInputPage] Existing record loaded')
+        } else {
+          setSelectedTasks({})
+          setIsEditing(false)
+        }
+      } catch (error) {
+        console.error('[DailyInputPage] Error loading record:', error)
+        setError('データの読み込みに失敗しました')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadRecord()
+  }, [selectedDate])
 
   // タスクの回数を設定
   const setTaskCount = (taskId: string, count: number) => {
@@ -103,7 +123,7 @@ const DailyInputPage: React.FC = () => {
   // 保存処理
   const handleSave = async () => {
     const validation = validateDailyInput(
-      { date: currentDate, selectedTasks },
+      { date: selectedDate, selectedTasks },
       tasks
     )
 
@@ -117,9 +137,9 @@ const DailyInputPage: React.FC = () => {
       console.log('[DailyInputPage] Saving record...')
 
       if (!isEditing) {
-        const existing = await window.electronAPI.getDailyRecord(currentDate)
+        const existing = await window.electronAPI.getDailyRecord(selectedDate)
         if (existing.success && existing.data) {
-          const overwrite = window.confirm(getDuplicateDateMessage(currentDate))
+          const overwrite = window.confirm(getDuplicateDateMessage(selectedDate))
           if (!overwrite) {
             return
           }
@@ -136,19 +156,19 @@ const DailyInputPage: React.FC = () => {
       })
 
       const result = await window.electronAPI.saveDailyRecord({
-        date: currentDate,
+        date: selectedDate,
         taskExecutions
       })
 
       if (result.success) {
         console.log('[DailyInputPage] Record saved successfully')
-        alert(
-          getSaveSuccessMessage(
-            currentDate,
-            totalAmount,
-            Object.keys(selectedTasks).length
+          alert(
+            getSaveSuccessMessage(
+              selectedDate,
+              totalAmount,
+              Object.keys(selectedTasks).length
+            )
           )
-        )
         setIsEditing(true)
       } else {
         throw new Error(result.error || '保存に失敗しました')
@@ -163,7 +183,7 @@ const DailyInputPage: React.FC = () => {
     if (window.confirm('入力内容をクリアしますか？')) {
       try {
         if (isEditing) {
-          await window.electronAPI.deleteDailyRecord(currentDate)
+          await window.electronAPI.deleteDailyRecord(selectedDate)
         }
         setSelectedTasks({})
         setIsEditing(false)
@@ -194,7 +214,7 @@ const DailyInputPage: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            今日のタスク入力
+            タスク入力
           </h1>
         </div>
         
@@ -225,7 +245,7 @@ const DailyInputPage: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            今日のタスク入力
+            タスク入力
           </h1>
         </div>
         
@@ -260,18 +280,41 @@ const DailyInputPage: React.FC = () => {
       {/* ヘッダー */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          今日のタスク入力
+          タスク入力
         </h1>
         <p className="text-gray-600 mb-4">
-          今日やったお手伝いや宿題を記録しよう
+          やったお手伝いや宿題を記録しよう
         </p>
-        <div className="text-lg font-medium text-blue-600">
-          {new Date(currentDate).toLocaleDateString('ja-JP', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            weekday: 'long'
-          })}
+        <div className="flex justify-center items-center mb-2">
+          <div className="text-lg font-medium text-blue-600">
+            {new Date(selectedDate).toLocaleDateString('ja-JP', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              weekday: 'long'
+            })}
+          </div>
+          <button
+            onClick={() => dateInputRef.current?.showPicker()}
+            className="ml-2 text-blue-600 hover:text-blue-800"
+            aria-label="日付を選択"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </button>
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value)}
+            className="hidden"
+          />
         </div>
       </div>
 
@@ -280,7 +323,7 @@ const DailyInputPage: React.FC = () => {
         <div className="lg:col-span-2">
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold text-gray-800 mb-4">
-              📝 今日やったタスクを選んでください
+              📝 タスクを選んでください
             </h2>
             
             <div className="mb-6 flex flex-wrap gap-2">
@@ -367,7 +410,7 @@ const DailyInputPage: React.FC = () => {
         <div className="space-y-6">
           {/* 合計表示 */}
           <div className="bg-white rounded-lg shadow-md p-6 text-center">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">今日の合計</h3>
+            <h3 className="text-lg font-bold text-gray-800 mb-4">この日の合計</h3>
             <div className="text-3xl font-bold text-green-600 mb-4">
               ¥{totalAmount.toLocaleString()}
             </div>

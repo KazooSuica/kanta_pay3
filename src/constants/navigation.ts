@@ -26,7 +26,7 @@ export const navigationItems: NavigationItem[] = [
   },
   {
     id: 'daily-input',
-    title: '今日のタスク入力',
+    title: 'タスク入力',
     description: 'やったことを記録しよう',
     icon: '✅',
     color: 'bg-green-500 hover:bg-green-600',
