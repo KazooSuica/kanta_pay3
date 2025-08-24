@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { electronAPI } from '../services/electronAPI'
 import { StatisticsData } from '../types'
 import BottomNavigation from '../components/common/BottomNavigation'
+import PageHeader from '../components/common/PageHeader'
 
 const HistoryPage: React.FC = () => {
   const today = new Date().toISOString().split('T')[0]
@@ -116,11 +117,12 @@ const HistoryPage: React.FC = () => {
   return (
     <>
       <div className="max-w-4xl mx-auto pb-24">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">履歴を見る</h1>
-        <p className="text-child-friendly text-gray-600 mb-2">過去のおこづかい記録を確認しよう</p>
-        <p className="text-red-500">この画面は現在工事中です</p>
-      </div>
+      <PageHeader
+        title="履歴を見る"
+        description="過去のおこづかい記録を確認しよう"
+        navId="history"
+      />
+      <p className="text-red-500 text-center mb-8">この画面は現在工事中です</p>
 
       <form onSubmit={handleSubmit} className="card mb-6">
         <div className="flex flex-col md:flex-row gap-4 items-end">

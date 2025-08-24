@@ -1,21 +1,21 @@
 import React from 'react'
 import Navigation from '../components/common/Navigation'
 import WelcomeMessage from '../components/common/WelcomeMessage'
+import PageHeader from '../components/common/PageHeader'
 
 const HomePage: React.FC = () => {
   return (
     <>
       <WelcomeMessage />
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8 animate-fade-in">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            おこづかい請求アプリ
-          </h1>
-          <p className="text-child-friendly text-gray-600">
-            毎日のお手伝いや宿題を記録して、おこづかいを計算しよう！
-          </p>
+        <div className="animate-fade-in">
+          <PageHeader
+            title="おこづかい請求アプリ"
+            description="毎日のお手伝いや宿題を記録して、おこづかいを計算しよう！"
+            navId="home"
+          />
         </div>
-        
+
         <div className="animate-slide-in-up">
           <Navigation />
         </div>

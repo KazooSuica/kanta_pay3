@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import BottomNavigation from '../components/common/BottomNavigation'
+import PageHeader from '../components/common/PageHeader'
 import { Task, Category } from '../types'
 import {
   validateDailyInput,
@@ -212,11 +213,7 @@ const DailyInputPage: React.FC = () => {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            タスク入力
-          </h1>
-        </div>
+        <PageHeader title="タスク入力" navId="daily-input" />
         
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
@@ -243,11 +240,7 @@ const DailyInputPage: React.FC = () => {
   if (categories.length === 0) {
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            タスク入力
-          </h1>
-        </div>
+        <PageHeader title="タスク入力" navId="daily-input" />
         
         <div className="bg-white rounded-lg shadow-md p-12 text-center">
           <div className="text-6xl mb-4">📝</div>
@@ -278,44 +271,41 @@ const DailyInputPage: React.FC = () => {
     <>
       <div className="max-w-6xl mx-auto pb-24">
       {/* ヘッダー */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          タスク入力
-        </h1>
-        <p className="text-gray-600 mb-4">
-          やったお手伝いや宿題を記録しよう
-        </p>
-        <div className="flex justify-center items-center mb-2">
-          <div className="text-lg font-medium text-blue-600">
-            {new Date(selectedDate).toLocaleDateString('ja-JP', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              weekday: 'long'
-            })}
-          </div>
-          <button
-            onClick={() => dateInputRef.current?.showPicker()}
-            className="ml-2 text-blue-600 hover:text-blue-800"
-            aria-label="日付を選択"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </button>
-          <input
-            ref={dateInputRef}
-            type="date"
-            value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
-            className="hidden"
-          />
+      <PageHeader
+        title="タスク入力"
+        description="やったお手伝いや宿題を記録しよう"
+        navId="daily-input"
+      />
+      <div className="flex justify-center items-center mb-8">
+        <div className="text-lg font-medium text-blue-600">
+          {new Date(selectedDate).toLocaleDateString('ja-JP', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            weekday: 'long'
+          })}
         </div>
+        <button
+          onClick={() => dateInputRef.current?.showPicker()}
+          className="ml-2 text-blue-600 hover:text-blue-800"
+          aria-label="日付を選択"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        </button>
+        <input
+          ref={dateInputRef}
+          type="date"
+          value={selectedDate}
+          onChange={e => setSelectedDate(e.target.value)}
+          className="hidden"
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

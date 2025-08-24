@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import BottomNavigation from '../components/common/BottomNavigation'
+import PageHeader from '../components/common/PageHeader'
 
 /**
  * おこづかい計算ページ（シンプル版）
@@ -173,51 +174,48 @@ const CalculationPage: React.FC = () => {
   return (
     <>
       <div className="max-w-4xl mx-auto pb-24">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          おこづかい計算
-        </h1>
-        <p className="text-gray-600">
-          今日やったタスクからおこづかいを計算しよう
-        </p>
-        <div className="flex justify-center items-center mt-4">
-          <div className="text-lg font-medium text-blue-600">
-            {new Date(selectedDate).toLocaleDateString('ja-JP', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              weekday: 'long'
-            })}
-          </div>
-          <button
-            onClick={() => dateInputRef.current?.showPicker()}
-            className="ml-2 text-blue-600 hover:text-blue-800"
-            aria-label="日付を選択"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-              />
-            </svg>
-          </button>
-          <input
-            ref={dateInputRef}
-            type="date"
-            value={selectedDate}
-            onChange={handleDateChange}
-            className="hidden"
-          />
-          <button
-            onClick={handleCalculate}
-            disabled={!selectedDate || isLoading}
-            className="ml-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md font-medium"
-          >
-            {isLoading ? '計算中...' : '計算する'}
-          </button>
+      <PageHeader
+        title="おこづかい計算"
+        description="今日やったタスクからおこづかいを計算しよう"
+        navId="calculation"
+      />
+      <div className="flex justify-center items-center mb-8">
+        <div className="text-lg font-medium text-blue-600">
+          {new Date(selectedDate).toLocaleDateString('ja-JP', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            weekday: 'long'
+          })}
         </div>
+        <button
+          onClick={() => dateInputRef.current?.showPicker()}
+          className="ml-2 text-blue-600 hover:text-blue-800"
+          aria-label="日付を選択"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
+          </svg>
+        </button>
+        <input
+          ref={dateInputRef}
+          type="date"
+          value={selectedDate}
+          onChange={handleDateChange}
+          className="hidden"
+        />
+        <button
+          onClick={handleCalculate}
+          disabled={!selectedDate || isLoading}
+          className="ml-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md font-medium"
+        >
+          {isLoading ? '計算中...' : '計算する'}
+        </button>
       </div>
       
       {/* ローディング表示 */}

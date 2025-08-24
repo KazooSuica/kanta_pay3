@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Category } from '../types'
 import TaskValidator from '../utils/taskValidation'
 import BottomNavigation from '../components/common/BottomNavigation'
+import PageHeader from '../components/common/PageHeader'
 
 const CategoryManagementPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([])
@@ -120,11 +121,7 @@ const CategoryManagementPage: React.FC = () => {
   if (error) {
     return (
         <div className="max-w-4xl mx-auto pb-24">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            カテゴリ管理
-          </h1>
-        </div>
+        <PageHeader title="カテゴリ管理" navId="category-management" />
         
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
@@ -224,14 +221,11 @@ const CategoryManagementPage: React.FC = () => {
       )}
 
       <div className="max-w-4xl mx-auto pb-24">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            カテゴリ管理
-          </h1>
-          <p className="text-gray-600">
-            タスクの種類を整理・管理できます
-          </p>
-        </div>
+        <PageHeader
+          title="カテゴリ管理"
+          description="タスクの種類を整理・管理できます"
+          navId="category-management"
+        />
 
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center justify-between mb-4">

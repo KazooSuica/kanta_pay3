@@ -5,6 +5,7 @@ import TaskValidator from '../utils/taskValidation'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import Alert from '../components/common/Alert'
 import BottomNavigation from '../components/common/BottomNavigation'
+import PageHeader from '../components/common/PageHeader'
 
 const TaskManagementPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -182,9 +183,7 @@ const TaskManagementPage: React.FC = () => {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">タスク管理</h1>
-        </div>
+        <PageHeader title="タスク管理" navId="task-management" />
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div className="flex items-center">
             <span className="text-red-600 text-xl mr-2">⚠️</span>
@@ -311,10 +310,11 @@ const TaskManagementPage: React.FC = () => {
       )}
 
       <div className="max-w-6xl mx-auto pb-24">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">タスク管理</h1>
-          <p className="text-gray-600">お手伝いや宿題を登録・編集できます</p>
-        </div>
+        <PageHeader
+          title="タスク管理"
+          description="お手伝いや宿題を登録・編集できます"
+          navId="task-management"
+        />
 
         {notification && (
           <div className="mb-4">
