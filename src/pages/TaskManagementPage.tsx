@@ -4,6 +4,7 @@ import { Task, Category, CreateInput } from '../types'
 import TaskValidator from '../utils/taskValidation'
 import ConfirmDialog from '../components/common/ConfirmDialog'
 import Alert from '../components/common/Alert'
+import BottomNavigation from '../components/common/BottomNavigation'
 
 const TaskManagementPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -309,7 +310,7 @@ const TaskManagementPage: React.FC = () => {
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto pb-24">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">タスク管理</h1>
           <p className="text-gray-600">お手伝いや宿題を登録・編集できます</p>
@@ -463,29 +464,6 @@ const TaskManagementPage: React.FC = () => {
           </div>
         </div>
 
-        {/* アクションボタン */}
-        <div className="mt-8 text-center">
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/daily-input">
-              <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center">
-                <span className="text-2xl mr-2">📝</span>
-                タスクを記録する
-              </button>
-            </Link>
-            <Link to="/calculation">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center">
-                <span className="text-2xl mr-2">🧮</span>
-                おこづかいを計算する
-              </button>
-            </Link>
-            <Link to="/">
-              <button className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center">
-                <span className="text-2xl mr-2">🏠</span>
-                ホームに戻る
-              </button>
-            </Link>
-          </div>
-        </div>
       </div>
 
       {confirmState && (
@@ -496,6 +474,7 @@ const TaskManagementPage: React.FC = () => {
           onCancel={handleConfirmCancel}
         />
       )}
+      <BottomNavigation current="task-management" />
     </>
   )
 }

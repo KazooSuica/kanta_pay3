@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import BottomNavigation from '../components/common/BottomNavigation'
 
 /**
  * おこづかい計算ページ（シンプル版）
@@ -169,7 +170,8 @@ const CalculationPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <>
+      <div className="max-w-4xl mx-auto pb-24">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
           おこづかい計算
@@ -389,30 +391,9 @@ const CalculationPage: React.FC = () => {
         </div>
       )}
 
-      {/* ナビゲーション */}
-      <div className="mt-8 text-center">
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link to="/daily-input">
-            <button className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center">
-              <span className="text-2xl mr-2">📝</span>
-              タスク入力
-            </button>
-          </Link>
-          <Link to="/history">
-            <button className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center">
-              <span className="text-2xl mr-2">📊</span>
-              履歴を見る
-            </button>
-          </Link>
-          <Link to="/">
-            <button className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center">
-              <span className="text-2xl mr-2">🏠</span>
-              ホームに戻る
-            </button>
-          </Link>
-        </div>
       </div>
-    </div>
+      <BottomNavigation current="calculation" />
+    </>
   )
 }
 

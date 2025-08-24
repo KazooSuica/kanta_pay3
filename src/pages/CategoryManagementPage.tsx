@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { Category } from '../types'
 import TaskValidator from '../utils/taskValidation'
+import BottomNavigation from '../components/common/BottomNavigation'
 
 const CategoryManagementPage: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([])
@@ -104,7 +104,7 @@ const CategoryManagementPage: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto pb-24">
         <div className="flex justify-center items-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -119,7 +119,7 @@ const CategoryManagementPage: React.FC = () => {
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto pb-24">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             カテゴリ管理
@@ -223,7 +223,7 @@ const CategoryManagementPage: React.FC = () => {
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto pb-24">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">
             カテゴリ管理
@@ -305,30 +305,8 @@ const CategoryManagementPage: React.FC = () => {
         )}
       </div>
 
-        {/* ナビゲーション */}
-        <div className="text-center">
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/task-management">
-              <button className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center">
-                <span className="text-2xl mr-2">✅</span>
-                タスク管理
-              </button>
-            </Link>
-            <Link to="/daily-input">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center">
-                <span className="text-2xl mr-2">📝</span>
-                タスク入力
-              </button>
-            </Link>
-            <Link to="/">
-              <button className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center">
-                <span className="text-2xl mr-2">🏠</span>
-                ホームに戻る
-              </button>
-            </Link>
-          </div>
-        </div>
       </div>
+      <BottomNavigation current="category-management" />
     </>
   )
 }
