@@ -16,6 +16,7 @@ const DailyInputPage: React.FC = () => {
   const [selectedTasks, setSelectedTasks] = useState<Record<string, number>>({})
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0])
   const [activeCategoryId, setActiveCategoryId] = useState<string>('')
+  const [isEditing, setIsEditing] = useState(false)
 
   // データの初期読み込み
   useEffect(() => {
@@ -42,6 +43,18 @@ const DailyInputPage: React.FC = () => {
           console.log('[DailyInputPage] Tasks loaded:', tasksResponse.data.length)
         } else {
           throw new Error('タスクの読み込みに失敗しました')
+        }
+
+        // 既存の記録を読み込み
+        const existingRecord = await window.electronAPI.getDailyRecord(currentDate)
+        if (existingRecord.success && existingRecord.data) {
+          const initialSelected: Record<string, number> = {}
+          for (const exec of existingRecord.data.taskExecutions) {
+            initialSelected[exec.taskId] = exec.count
+          }
+          setSelectedTasks(initialSelected)
+          setIsEditing(true)
+          console.log('[DailyInputPage] Existing record loaded')
         }
       } catch (error) {
         console.error('[DailyInputPage] Error loading data:', error)
@@ -102,11 +115,13 @@ const DailyInputPage: React.FC = () => {
     try {
       console.log('[DailyInputPage] Saving record...')
 
-      const existing = await window.electronAPI.getDailyRecord(currentDate)
-      if (existing.success && existing.data) {
-        const overwrite = window.confirm(getDuplicateDateMessage(currentDate))
-        if (!overwrite) {
-          return
+      if (!isEditing) {
+        const existing = await window.electronAPI.getDailyRecord(currentDate)
+        if (existing.success && existing.data) {
+          const overwrite = window.confirm(getDuplicateDateMessage(currentDate))
+          if (!overwrite) {
+            return
+          }
         }
       }
 
@@ -133,13 +148,28 @@ const DailyInputPage: React.FC = () => {
             Object.keys(selectedTasks).length
           )
         )
-        setSelectedTasks({})
+        setIsEditing(true)
       } else {
         throw new Error(result.error || '保存に失敗しました')
       }
     } catch (error) {
       console.error('[DailyInputPage] Error saving record:', error)
       alert('保存に失敗しました')
+    }
+  }
+
+  const handleClear = async () => {
+    if (window.confirm('入力内容をクリアしますか？')) {
+      try {
+        if (isEditing) {
+          await window.electronAPI.deleteDailyRecord(currentDate)
+        }
+        setSelectedTasks({})
+        setIsEditing(false)
+      } catch (error) {
+        console.error('[DailyInputPage] Error deleting record:', error)
+        alert('記録の削除に失敗しました')
+      }
     }
   }
 
@@ -333,10 +363,37 @@ const DailyInputPage: React.FC = () => {
 
         {/* サイドバー */}
         <div className="space-y-6">
+          {/* 合計表示 */}
+          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+            <h3 className="text-lg font-bold text-gray-800 mb-4">今日の合計</h3>
+            <div className="text-3xl font-bold text-green-600 mb-4">
+              ¥{totalAmount.toLocaleString()}
+            </div>
+
+            {Object.keys(selectedTasks).length > 0 && (
+              <>
+                <button
+                  onClick={handleSave}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center justify-center"
+                >
+                  <span className="text-2xl mr-2">💾</span>
+                  記録を保存
+                </button>
+                <button
+                  onClick={handleClear}
+                  className="w-full mt-3 bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-md font-medium inline-flex items-center justify-center"
+                >
+                  <span className="text-xl mr-2">🗑️</span>
+                  入力内容をクリア
+                </button>
+              </>
+            )}
+          </div>
+
           {/* 選択済みタスク */}
           {selectedTasksByCategory.length > 0 && (
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">えらんだタスク</h3>
+              <h3 className="text-lg font-bold text-gray-800 mb-4">選んだタスク</h3>
               {selectedTasksByCategory.map(({ category, tasks }) => (
                 <div key={category.id} className="mb-4 last:mb-0">
                   <h4 className="font-medium text-gray-700 flex items-center">
@@ -355,24 +412,6 @@ const DailyInputPage: React.FC = () => {
               ))}
             </div>
           )}
-
-          {/* 合計表示 */}
-          <div className="bg-white rounded-lg shadow-md p-6 text-center">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">今日の合計</h3>
-            <div className="text-3xl font-bold text-green-600 mb-4">
-              ¥{totalAmount.toLocaleString()}
-            </div>
-
-            {Object.keys(selectedTasks).length > 0 && (
-              <button
-                onClick={handleSave}
-                className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center justify-center"
-              >
-                <span className="text-2xl mr-2">💾</span>
-                記録を保存
-              </button>
-            )}
-          </div>
 
           {/* ナビゲーション */}
           <div className="bg-white rounded-lg shadow-md p-6">

@@ -120,6 +120,13 @@ class ElectronAPIService {
     )
   }
 
+  async deleteDailyRecord(date: string): Promise<ApiResponse> {
+    return this.handleAPICall(
+      () => window.electronAPI.deleteDailyRecord(date),
+      '日次記録削除'
+    )
+  }
+
   // Calculation
   async calculateAllowance(date: string): Promise<ApiResponse> {
     return this.handleAPICall(

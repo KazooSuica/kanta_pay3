@@ -15,7 +15,7 @@ import {
   type DailyRecord,
   type TaskExecution
 } from './database'
-import { taskExecutionHelpers } from './database-helpers'
+import { taskExecutionHelpers, dailyRecordHelpers } from './database-helpers'
 
 // 印刷用HTML生成関数
 const generatePrintHTML = (printData: any): string => {
@@ -573,6 +573,20 @@ export const setupIpcHandlers = (): void => {
       }
     } catch (error) {
       console.error('Failed to save daily record:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+  ipcMain.handle('daily-records:delete', async (event, date) => {
+    try {
+      const record = dailyRecordHelpers.getByDate(date)
+      if (record) {
+        const deleted = dailyRecordHelpers.delete(record.id)
+        return { success: deleted }
+      }
+      return { success: true }
+    } catch (error) {
+      console.error('Failed to delete daily record:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }
   })
