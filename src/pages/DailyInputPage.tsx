@@ -161,6 +161,11 @@ const DailyInputPage: React.FC = () => {
     }
   }
 
+  const handleClear = () => {
+    setSelectedTasks({})
+    setIsEditing(false)
+  }
+
   if (isLoading) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -260,12 +265,6 @@ const DailyInputPage: React.FC = () => {
           })}
         </div>
       </div>
-
-      {isEditing && (
-        <div className="bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded mb-8">
-          前回の入力内容を読み込みました。続きから編集できます。
-        </div>
-      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* メインコンテンツ */}
@@ -388,13 +387,22 @@ const DailyInputPage: React.FC = () => {
             </div>
 
             {Object.keys(selectedTasks).length > 0 && (
-              <button
-                onClick={handleSave}
-                className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center justify-center"
-              >
-                <span className="text-2xl mr-2">💾</span>
-                記録を保存
-              </button>
+              <>
+                <button
+                  onClick={handleSave}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center justify-center"
+                >
+                  <span className="text-2xl mr-2">💾</span>
+                  記録を保存
+                </button>
+                <button
+                  onClick={handleClear}
+                  className="w-full mt-3 bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-2 rounded-md font-medium inline-flex items-center justify-center"
+                >
+                  <span className="text-xl mr-2">🗑️</span>
+                  入力内容をクリア
+                </button>
+              </>
             )}
           </div>
 
