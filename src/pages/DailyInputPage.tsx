@@ -393,7 +393,7 @@ const DailyInputPage: React.FC = () => {
           {/* 選択済みタスク */}
           {selectedTasksByCategory.length > 0 && (
             <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">えらんだタスク</h3>
+              <h3 className="text-lg font-bold text-gray-800 mb-4">選んだタスク</h3>
               {selectedTasksByCategory.map(({ category, tasks }) => (
                 <div key={category.id} className="mb-4 last:mb-0">
                   <h4 className="font-medium text-gray-700 flex items-center">
