@@ -185,11 +185,8 @@ const CalculationPage: React.FC = () => {
           📅 計算する日付を選んでください
         </h2>
         
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
           <div className="flex-1">
-            <label htmlFor="calculation-date" className="block text-sm font-medium text-gray-700 mb-2">
-              日付
-            </label>
             <input
               id="calculation-date"
               type="date"
@@ -199,7 +196,7 @@ const CalculationPage: React.FC = () => {
               disabled={isLoading}
             />
           </div>
-          
+
           <div className="flex gap-2">
             <button
               onClick={handleCalculate}
