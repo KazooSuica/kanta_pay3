@@ -210,25 +210,16 @@ const CalculationPage: React.FC = () => {
             onChange={handleDateChange}
             className="hidden"
           />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-          🧮 おこづかいを計算する
-        </h2>
-
-        <div className="flex justify-center">
           <button
             onClick={handleCalculate}
             disabled={!selectedDate || isLoading}
-            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md font-medium"
+            className="ml-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md font-medium"
           >
             {isLoading ? '計算中...' : '計算する'}
           </button>
         </div>
       </div>
-
+      
       {/* ローディング表示 */}
       {isLoading && (
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
