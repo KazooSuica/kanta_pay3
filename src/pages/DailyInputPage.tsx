@@ -149,9 +149,6 @@ const DailyInputPage: React.FC = () => {
           )
         )
         setIsEditing(true)
-        if (!isEditing) {
-          setSelectedTasks({})
-        }
       } else {
         throw new Error(result.error || '保存に失敗しました')
       }
