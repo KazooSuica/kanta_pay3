@@ -48,7 +48,7 @@ const TaskManagementPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const openNewModal = () => {
+  const resetForm = () => {
     setEditingTask(null)
     setFormData({
       name: '',
@@ -58,6 +58,10 @@ const TaskManagementPage: React.FC = () => {
       isActive: true
     })
     setValidationError(null)
+  }
+
+  const openNewModal = () => {
+    resetForm()
     setIsModalOpen(true)
   }
 
@@ -101,6 +105,7 @@ const TaskManagementPage: React.FC = () => {
       }
 
       setIsModalOpen(false)
+      resetForm()
       await loadData()
     } catch (err) {
       setValidationError(err instanceof Error ? err.message : '保存に失敗しました')
@@ -254,7 +259,10 @@ const TaskManagementPage: React.FC = () => {
             </div>
             <div className="mt-6 flex justify-end space-x-2">
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false)
+                  resetForm()
+                }}
                 className="px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300"
               >
                 キャンセル
