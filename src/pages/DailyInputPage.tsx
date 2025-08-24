@@ -16,6 +16,7 @@ const DailyInputPage: React.FC = () => {
   const [selectedTasks, setSelectedTasks] = useState<Record<string, number>>({})
   const [currentDate] = useState(() => new Date().toISOString().split('T')[0])
   const [activeCategoryId, setActiveCategoryId] = useState<string>('')
+  const [isEditing, setIsEditing] = useState(false)
 
   // データの初期読み込み
   useEffect(() => {
@@ -42,6 +43,18 @@ const DailyInputPage: React.FC = () => {
           console.log('[DailyInputPage] Tasks loaded:', tasksResponse.data.length)
         } else {
           throw new Error('タスクの読み込みに失敗しました')
+        }
+
+        // 既存の記録を読み込み
+        const existingRecord = await window.electronAPI.getDailyRecord(currentDate)
+        if (existingRecord.success && existingRecord.data) {
+          const initialSelected: Record<string, number> = {}
+          for (const exec of existingRecord.data.taskExecutions) {
+            initialSelected[exec.taskId] = exec.count
+          }
+          setSelectedTasks(initialSelected)
+          setIsEditing(true)
+          console.log('[DailyInputPage] Existing record loaded')
         }
       } catch (error) {
         console.error('[DailyInputPage] Error loading data:', error)
@@ -102,11 +115,13 @@ const DailyInputPage: React.FC = () => {
     try {
       console.log('[DailyInputPage] Saving record...')
 
-      const existing = await window.electronAPI.getDailyRecord(currentDate)
-      if (existing.success && existing.data) {
-        const overwrite = window.confirm(getDuplicateDateMessage(currentDate))
-        if (!overwrite) {
-          return
+      if (!isEditing) {
+        const existing = await window.electronAPI.getDailyRecord(currentDate)
+        if (existing.success && existing.data) {
+          const overwrite = window.confirm(getDuplicateDateMessage(currentDate))
+          if (!overwrite) {
+            return
+          }
         }
       }
 
@@ -133,7 +148,10 @@ const DailyInputPage: React.FC = () => {
             Object.keys(selectedTasks).length
           )
         )
-        setSelectedTasks({})
+        setIsEditing(true)
+        if (!isEditing) {
+          setSelectedTasks({})
+        }
       } else {
         throw new Error(result.error || '保存に失敗しました')
       }
@@ -242,6 +260,12 @@ const DailyInputPage: React.FC = () => {
           })}
         </div>
       </div>
+
+      {isEditing && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded mb-8">
+          前回の入力内容を読み込みました。続きから編集できます。
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* メインコンテンツ */}
