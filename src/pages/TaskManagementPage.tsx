@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Task, Category, CreateInput } from '../types'
 import TaskValidator from '../utils/taskValidation'
+import ConfirmDialog from '../components/common/ConfirmDialog'
+import Alert from '../components/common/Alert'
 
 const TaskManagementPage: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -21,6 +23,17 @@ const TaskManagementPage: React.FC = () => {
     isActive: true
   })
   const [validationError, setValidationError] = useState<string | null>(null)
+  const [notification, setNotification] = useState<string | null>(null)
+  const [confirmState, setConfirmState] = useState<{
+    message: string
+    onConfirm: () => void
+  } | null>(null)
+  const nameInputRef = useRef<HTMLInputElement>(null)
+
+  const handleConfirmCancel = () => {
+    setConfirmState(null)
+    nameInputRef.current?.focus()
+  }
 
   const loadData = async () => {
     try {
@@ -47,6 +60,14 @@ const TaskManagementPage: React.FC = () => {
     loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    if (isModalOpen) {
+      setTimeout(() => {
+        nameInputRef.current?.focus()
+      }, 0)
+    }
+  }, [isModalOpen])
 
   const openNewModal = () => {
     setEditingTask(null)
@@ -84,42 +105,59 @@ const TaskManagementPage: React.FC = () => {
       return
     }
 
-    try {
-      if (editingTask) {
-        if (!window.confirm(`${editingTask.name}を更新してもよろしいですか？`)) {
-          return
+    const saveTask = async () => {
+      try {
+        if (editingTask) {
+          const result = await window.electronAPI.updateTask(editingTask.id, formData)
+          if (!result.success) {
+            throw new Error(result.error || 'タスクの更新に失敗しました')
+          }
+        } else {
+          const result = await window.electronAPI.createTask(formData)
+          if (!result.success) {
+            throw new Error(result.error || 'タスクの作成に失敗しました')
+          }
         }
-        const result = await window.electronAPI.updateTask(editingTask.id, formData)
-        if (!result.success) {
-          throw new Error(result.error || 'タスクの更新に失敗しました')
-        }
-      } else {
-        const result = await window.electronAPI.createTask(formData)
-        if (!result.success) {
-          throw new Error(result.error || 'タスクの作成に失敗しました')
-        }
-      }
 
-      setIsModalOpen(false)
-      await loadData()
-    } catch (err) {
-      setValidationError(err instanceof Error ? err.message : '保存に失敗しました')
+        setIsModalOpen(false)
+        await loadData()
+      } catch (err) {
+        setValidationError(err instanceof Error ? err.message : '保存に失敗しました')
+      }
+    }
+
+    if (editingTask) {
+      setConfirmState({
+        message: `${editingTask.name}を更新してもよろしいですか？`,
+        onConfirm: async () => {
+          await saveTask()
+          setConfirmState(null)
+          nameInputRef.current?.focus()
+        }
+      })
+    } else {
+      await saveTask()
     }
   }
 
-  const handleDelete = async (task: Task) => {
-    if (!window.confirm(`${task.name}を削除してもよろしいですか？`)) {
-      return
-    }
-    try {
-      const result = await window.electronAPI.deleteTask(task.id)
-      if (!result.success) {
-        throw new Error(result.error || 'タスクの削除に失敗しました')
+  const handleDelete = (task: Task) => {
+    setConfirmState({
+      message: `${task.name}を削除してもよろしいですか？`,
+      onConfirm: async () => {
+        try {
+          const result = await window.electronAPI.deleteTask(task.id)
+          if (!result.success) {
+            throw new Error(result.error || 'タスクの削除に失敗しました')
+          }
+          await loadData()
+        } catch (err) {
+          setNotification(err instanceof Error ? err.message : '削除に失敗しました')
+        } finally {
+          setConfirmState(null)
+          nameInputRef.current?.focus()
+        }
       }
-      await loadData()
-    } catch (err) {
-      alert(err instanceof Error ? err.message : '削除に失敗しました')
-    }
+    })
   }
 
   const filteredTasks =
@@ -188,6 +226,7 @@ const TaskManagementPage: React.FC = () => {
                     setFormData({ ...formData, name: e.target.value })
                   }
                   className="w-full border rounded-md px-3 py-2"
+                  ref={nameInputRef}
                 />
               </div>
               <div>
@@ -275,6 +314,14 @@ const TaskManagementPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-800 mb-2">タスク管理</h1>
           <p className="text-gray-600">お手伝いや宿題を登録・編集できます</p>
         </div>
+
+        {notification && (
+          <div className="mb-4">
+            <Alert variant="error" onClose={() => setNotification(null)}>
+              {notification}
+            </Alert>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* カテゴリ一覧 */}
@@ -440,6 +487,15 @@ const TaskManagementPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {confirmState && (
+        <ConfirmDialog
+          isOpen={true}
+          message={confirmState.message}
+          onConfirm={confirmState.onConfirm}
+          onCancel={handleConfirmCancel}
+        />
+      )}
     </>
   )
 }
