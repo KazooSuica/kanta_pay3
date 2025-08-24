@@ -15,6 +15,7 @@ const CalculationPage: React.FC = () => {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [adjustAmount, setAdjustAmount] = useState('')
   const [adjustReason, setAdjustReason] = useState('')
+  const [hasTaskData, setHasTaskData] = useState<boolean | null>(null)
 
   useEffect(() => {
     const fetchChildName = async () => {
@@ -29,6 +30,28 @@ const CalculationPage: React.FC = () => {
     }
     fetchChildName()
   }, [])
+
+  // 選択した日付にデータがあるかを確認
+  useEffect(() => {
+    const checkDailyRecord = async () => {
+      if (!selectedDate) {
+        setHasTaskData(null)
+        return
+      }
+      try {
+        const result = await window.electronAPI.getDailyRecord(selectedDate)
+        if (result.success && result.data && result.data.taskExecutions?.length > 0) {
+          setHasTaskData(true)
+        } else {
+          setHasTaskData(false)
+        }
+      } catch (err) {
+        console.error('[CalculationPage] Failed to check daily record:', err)
+        setHasTaskData(false)
+      }
+    }
+    checkDailyRecord()
+  }, [selectedDate])
 
   // 計算実行
   const handleCalculate = async () => {
@@ -62,6 +85,7 @@ const CalculationPage: React.FC = () => {
     setSelectedDate(newDate)
     setCalculation(null) // 前の計算結果をクリア
     setError(null)
+    setHasTaskData(null)
   }
 
   const pieStyle = useMemo(() => {
@@ -336,7 +360,7 @@ const CalculationPage: React.FC = () => {
       )}
 
       {/* データがない場合の表示 */}
-      {!calculation && !isLoading && !error && selectedDate && (
+      {!calculation && !isLoading && !error && selectedDate && hasTaskData === false && (
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
           <div className="text-gray-400 text-6xl mb-4">📊</div>
           <h3 className="text-xl font-medium text-gray-600 mb-2">
@@ -352,6 +376,19 @@ const CalculationPage: React.FC = () => {
               タスク入力に移動
             </button>
           </Link>
+        </div>
+      )}
+
+      {/* データがあるが未計算の場合の表示 */}
+      {!calculation && !isLoading && !error && selectedDate && hasTaskData === true && (
+        <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          <div className="text-gray-400 text-6xl mb-4">🧮</div>
+          <h3 className="text-xl font-medium text-gray-600 mb-2">
+            {selectedDate}のデータがあります
+          </h3>
+          <p className="text-gray-600">
+            「計算する」ボタンを押してお小遣いを計算しましょう。
+          </p>
         </div>
       )}
 
