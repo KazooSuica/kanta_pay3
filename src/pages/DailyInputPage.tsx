@@ -363,29 +363,6 @@ const DailyInputPage: React.FC = () => {
 
         {/* サイドバー */}
         <div className="space-y-6">
-          {/* 選択済みタスク */}
-          {selectedTasksByCategory.length > 0 && (
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">えらんだタスク</h3>
-              {selectedTasksByCategory.map(({ category, tasks }) => (
-                <div key={category.id} className="mb-4 last:mb-0">
-                  <h4 className="font-medium text-gray-700 flex items-center">
-                    <span className="text-xl mr-2">{category.icon}</span>
-                    {category.name}
-                  </h4>
-                  <ul className="mt-2 space-y-1">
-                    {tasks.map(task => (
-                      <li key={task.id} className="flex justify-between text-sm">
-                        <span>{task.name}</span>
-                        <span>{task.count}回</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* 合計表示 */}
           <div className="bg-white rounded-lg shadow-md p-6 text-center">
             <h3 className="text-lg font-bold text-gray-800 mb-4">今日の合計</h3>
@@ -412,6 +389,29 @@ const DailyInputPage: React.FC = () => {
               </>
             )}
           </div>
+
+          {/* 選択済みタスク */}
+          {selectedTasksByCategory.length > 0 && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">えらんだタスク</h3>
+              {selectedTasksByCategory.map(({ category, tasks }) => (
+                <div key={category.id} className="mb-4 last:mb-0">
+                  <h4 className="font-medium text-gray-700 flex items-center">
+                    <span className="text-xl mr-2">{category.icon}</span>
+                    {category.name}
+                  </h4>
+                  <ul className="mt-2 space-y-1">
+                    {tasks.map(task => (
+                      <li key={task.id} className="flex justify-between text-sm">
+                        <span>{task.name}</span>
+                        <span>{task.count}回</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* ナビゲーション */}
           <div className="bg-white rounded-lg shadow-md p-6">
