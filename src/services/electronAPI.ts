@@ -131,7 +131,7 @@ class ElectronAPIService {
   async calculateAllowance(date: string): Promise<ApiResponse> {
     return this.handleAPICall(
       () => window.electronAPI.calculateAllowance(date),
-      'お小遣い計算'
+      'おこづかい計算'
     )
   }
 

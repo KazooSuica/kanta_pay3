@@ -116,7 +116,7 @@ const HistoryPage: React.FC = () => {
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">履歴を見る</h1>
-        <p className="text-child-friendly text-gray-600">過去のお小遣い記録を確認しよう</p>
+        <p className="text-child-friendly text-gray-600">過去のおこづかい記録を確認しよう</p>
       </div>
 
       <form onSubmit={handleSubmit} className="card mb-6">

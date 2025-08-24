@@ -9,10 +9,10 @@ const HomePage: React.FC = () => {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8 animate-fade-in">
           <h1 className="text-4xl font-bold text-gray-800 mb-2">
-            お小遣い請求アプリ
+            おこづかい請求アプリ
           </h1>
           <p className="text-child-friendly text-gray-600">
-            毎日のお手伝いや宿題を記録して、お小遣いを計算しよう！
+            毎日のお手伝いや宿題を記録して、おこづかいを計算しよう！
           </p>
         </div>
         

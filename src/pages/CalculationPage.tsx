@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 
 /**
- * お小遣い計算ページ（シンプル版）
+ * おこづかい計算ページ（シンプル版）
  */
 const CalculationPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>(() => {
@@ -130,7 +130,7 @@ const CalculationPage: React.FC = () => {
 
   const createPrintData = () => ({
     type: 'receipt' as const,
-    title: 'お小遣い計算結果',
+    title: 'おこづかい計算結果',
     date: selectedDate,
     childName: childName,
     data: calculation,
@@ -172,10 +172,10 @@ const CalculationPage: React.FC = () => {
     <div className="max-w-4xl mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          お小遣い計算
+          おこづかい計算
         </h1>
         <p className="text-gray-600">
-          今日やったタスクからお小遣いを計算しよう
+          今日やったタスクからおこづかいを計算しよう
         </p>
       </div>
 
@@ -214,7 +214,7 @@ const CalculationPage: React.FC = () => {
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">
-            お小遣いを計算しています...
+            おこづかいを計算しています...
           </p>
         </div>
       )}
@@ -246,7 +246,7 @@ const CalculationPage: React.FC = () => {
               ¥{calculation.totalAmount?.toLocaleString() || '0'}
             </div>
             <div className="text-gray-600">
-              {selectedDate}のお小遣い
+              {selectedDate}のおこづかい
             </div>
           </div>
 
@@ -384,7 +384,7 @@ const CalculationPage: React.FC = () => {
             {selectedDate}のデータがあります
           </h3>
           <p className="text-gray-600">
-            「計算する」ボタンを押してお小遣いを計算しましょう。
+            「計算する」ボタンを押しておこづかいを計算しましょう。
           </p>
         </div>
       )}

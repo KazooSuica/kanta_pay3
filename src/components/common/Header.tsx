@@ -34,10 +34,10 @@ const Header: React.FC = () => {
             <div className="text-3xl">💰</div>
             <div>
               <h1 className="text-xl font-bold text-gray-800">
-                お小遣い請求アプリ
+                おこづかい請求アプリ
               </h1>
               <p className="text-sm text-gray-600">
-                がんばった分だけお小遣いをもらおう！
+                がんばった分だけおこづかいをもらおう！
               </p>
             </div>
           </div>

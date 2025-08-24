@@ -26,9 +26,9 @@ const WelcomeMessage: React.FC = () => {
           ようこそ！
         </h2>
         <p className="text-child-friendly text-gray-600 mb-6">
-          お小遣い請求アプリへようこそ！<br />
+          おこづかい請求アプリへようこそ！<br />
           毎日のお手伝いや宿題を記録して、<br />
-          がんばった分だけお小遣いをもらおう！
+          がんばった分だけおこづかいをもらおう！
         </p>
         <button
           onClick={handleClose}

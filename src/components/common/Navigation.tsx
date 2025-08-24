@@ -40,7 +40,7 @@ const Navigation: React.FC = () => {
     },
     {
       id: 'calculation',
-      title: 'お小遣い計算',
+      title: 'おこづかい計算',
       description: 'いくらもらえるか計算しよう',
       icon: '💰',
       color: 'bg-yellow-500 hover:bg-yellow-600',
