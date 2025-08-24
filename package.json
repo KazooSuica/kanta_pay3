@@ -1,6 +1,6 @@
 {
   "name": "allowance-tracker",
-  "version": "0.0.1-beta",
+  "version": "0.0.2-beta",
   "description": "おこづかい請求アプリ - 小学生向けタスク管理とおこづかい計算アプリ",
   "main": "dist/main/main.js",
   "homepage": "./",
