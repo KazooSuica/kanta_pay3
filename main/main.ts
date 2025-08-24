@@ -26,7 +26,7 @@ const createWindow = (): void => {
       preload: join(__dirname, 'preload.js'),
     },
     icon: iconPath,
-    title: 'お小遣い請求アプリ',
+    title: 'おこづかい請求アプリ',
     show: false, // Don't show until ready-to-show
   })
 

@@ -44,6 +44,7 @@ export interface ElectronAPI {
     date: string
     taskExecutions: Omit<TaskExecution, 'id' | 'dailyRecordId'>[]
   }) => Promise<ApiResponse<DailyRecord & { taskExecutions: TaskExecution[] }>>
+  deleteDailyRecord: (date: string) => Promise<ApiResponse<void>>
 
   // Task executions
   adjustTaskExecutionAmount: (id: string, adjustedAmount: number, reason: string) => Promise<ApiResponse<TaskExecution | null>>
@@ -99,6 +100,7 @@ export interface IPCEventMap {
   // Daily records
   'daily-records:get': (date: string) => Promise<ApiResponse<DailyRecord | null>>
   'daily-records:save': (record: any) => Promise<ApiResponse<DailyRecord>>
+  'daily-records:delete': (date: string) => Promise<ApiResponse<void>>
 
   // Task executions
   'task-executions:adjust-amount': (id: string, adjustedAmount: number, reason: string) => Promise<ApiResponse<TaskExecution | null>>

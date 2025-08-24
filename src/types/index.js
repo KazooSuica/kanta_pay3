@@ -27,6 +27,7 @@ exports.IPC_EVENTS = {
     // Daily Records
     DAILY_RECORDS_GET: 'daily-records:get',
     DAILY_RECORDS_SAVE: 'daily-records:save',
+    DAILY_RECORDS_DELETE: 'daily-records:delete',
     // Calculation
     CALCULATION_CALCULATE: 'calculation:calculate',
     // History

@@ -158,10 +158,10 @@ export const formatValidationErrorsForChild = (errors: ValidationError[]): strin
         break
       case '単価':
         if (error.message.includes('0以上')) {
-          return 'お小遣いの金額は0円以上で入力してください'
+          return 'おこづかいの金額は0円以上で入力してください'
         }
         if (error.message.includes('10000')) {
-          return 'お小遣いの金額は10000円以下で入力してください'
+          return 'おこづかいの金額は10000円以下で入力してください'
         }
         break
       case '実行回数':
@@ -474,7 +474,7 @@ export const formatValidationErrorsForChild = (errors: ValidationError[]): strin
         
       case ERROR_CODES.VALIDATION_OUT_OF_RANGE:
         if (error.field.includes('price') || error.field.includes('単価')) {
-          return 'お小遣いの金額を正しく入力してください'
+          return 'おこづかいの金額を正しく入力してください'
         }
         if (error.field.includes('count') || error.field.includes('回数')) {
           return '回数を正しく入力してください'
@@ -503,10 +503,10 @@ export const formatValidationErrorsForChild = (errors: ValidationError[]): strin
         break
       case '単価':
         if (error.message.includes('0以上')) {
-          return 'お小遣いの金額は0円以上で入力してください'
+          return 'おこづかいの金額は0円以上で入力してください'
         }
         if (error.message.includes('10000')) {
-          return 'お小遣いの金額は10000円以下で入力してください'
+          return 'おこづかいの金額は10000円以下で入力してください'
         }
         break
       case '実行回数':
