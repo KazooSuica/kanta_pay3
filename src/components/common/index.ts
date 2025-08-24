@@ -17,6 +17,7 @@ export { default as Alert } from './Alert'
 export { default as Badge } from './Badge'
 export { default as Tooltip } from './Tooltip'
 export { default as ProgressBar } from './ProgressBar'
+export { default as ConfirmDialog } from './ConfirmDialog'
 
 // 子供向け特別コンポーネント
 export { default as ChildFriendlyCard } from './ChildFriendlyCard'

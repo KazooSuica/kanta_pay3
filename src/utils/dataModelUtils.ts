@@ -71,7 +71,7 @@ export const enrichDailyRecord = (
 }
 
 /**
- * お小遣い計算を実行
+ * おこづかい計算を実行
  */
 export const calculateAllowance = (
   date: string,

@@ -23,6 +23,7 @@ const IPC_EVENTS = {
   // Daily Records
   DAILY_RECORDS_GET: 'daily-records:get',
   DAILY_RECORDS_SAVE: 'daily-records:save',
+  DAILY_RECORDS_DELETE: 'daily-records:delete',
 
   // Task Executions
   TASK_EXECUTIONS_ADJUST_AMOUNT: 'task-executions:adjust-amount',
@@ -83,6 +84,7 @@ const electronAPI = {
   // Daily records
   getDailyRecord: createSecureInvoker(IPC_EVENTS.DAILY_RECORDS_GET),
   saveDailyRecord: createSecureInvoker(IPC_EVENTS.DAILY_RECORDS_SAVE),
+  deleteDailyRecord: createSecureInvoker(IPC_EVENTS.DAILY_RECORDS_DELETE),
 
   // Task executions
   adjustTaskExecutionAmount: createSecureInvoker(IPC_EVENTS.TASK_EXECUTIONS_ADJUST_AMOUNT),

@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import BottomNavigation from '../components/common/BottomNavigation'
 
 /**
- * お小遣い計算ページ（シンプル版）
+ * おこづかい計算ページ（シンプル版）
  */
 const CalculationPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return new Date().toISOString().split('T')[0]
   })
+  const dateInputRef = useRef<HTMLInputElement>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [calculation, setCalculation] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
@@ -15,6 +17,7 @@ const CalculationPage: React.FC = () => {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [adjustAmount, setAdjustAmount] = useState('')
   const [adjustReason, setAdjustReason] = useState('')
+  const [hasTaskData, setHasTaskData] = useState<boolean | null>(null)
 
   useEffect(() => {
     const fetchChildName = async () => {
@@ -29,6 +32,28 @@ const CalculationPage: React.FC = () => {
     }
     fetchChildName()
   }, [])
+
+  // 選択した日付にデータがあるかを確認
+  useEffect(() => {
+    const checkDailyRecord = async () => {
+      if (!selectedDate) {
+        setHasTaskData(null)
+        return
+      }
+      try {
+        const result = await window.electronAPI.getDailyRecord(selectedDate)
+        if (result.success && result.data && result.data.taskExecutions?.length > 0) {
+          setHasTaskData(true)
+        } else {
+          setHasTaskData(false)
+        }
+      } catch (err) {
+        console.error('[CalculationPage] Failed to check daily record:', err)
+        setHasTaskData(false)
+      }
+    }
+    checkDailyRecord()
+  }, [selectedDate])
 
   // 計算実行
   const handleCalculate = async () => {
@@ -62,6 +87,7 @@ const CalculationPage: React.FC = () => {
     setSelectedDate(newDate)
     setCalculation(null) // 前の計算結果をクリア
     setError(null)
+    setHasTaskData(null)
   }
 
   const pieStyle = useMemo(() => {
@@ -106,7 +132,7 @@ const CalculationPage: React.FC = () => {
 
   const createPrintData = () => ({
     type: 'receipt' as const,
-    title: 'お小遣い計算結果',
+    title: 'おこづかい計算結果',
     date: selectedDate,
     childName: childName,
     data: calculation,
@@ -145,55 +171,61 @@ const CalculationPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <>
+      <div className="max-w-4xl mx-auto pb-24">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          お小遣い計算
+          おこづかい計算
         </h1>
         <p className="text-gray-600">
-          今日やったタスクからお小遣いを計算しよう
+          今日やったタスクからおこづかいを計算しよう
         </p>
-      </div>
-
-      {/* 日付選択 */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-          📅 計算する日付を選んでください
-        </h2>
-        
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-          <div className="flex-1">
-            <label htmlFor="calculation-date" className="block text-sm font-medium text-gray-700 mb-2">
-              日付
-            </label>
-            <input
-              id="calculation-date"
-              type="date"
-              value={selectedDate}
-              onChange={handleDateChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
-              disabled={isLoading}
-            />
+        <div className="flex justify-center items-center mt-4">
+          <div className="text-lg font-medium text-blue-600">
+            {new Date(selectedDate).toLocaleDateString('ja-JP', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              weekday: 'long'
+            })}
           </div>
-          
-          <div className="flex gap-2">
-            <button
-              onClick={handleCalculate}
-              disabled={!selectedDate || isLoading}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md font-medium"
-            >
-              {isLoading ? '計算中...' : '計算する'}
-            </button>
-          </div>
+          <button
+            onClick={() => dateInputRef.current?.showPicker()}
+            className="ml-2 text-blue-600 hover:text-blue-800"
+            aria-label="日付を選択"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </button>
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={selectedDate}
+            onChange={handleDateChange}
+            className="hidden"
+          />
+          <button
+            onClick={handleCalculate}
+            disabled={!selectedDate || isLoading}
+            className="ml-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md font-medium"
+          >
+            {isLoading ? '計算中...' : '計算する'}
+          </button>
         </div>
       </div>
-
+      
       {/* ローディング表示 */}
       {isLoading && (
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">
-            お小遣いを計算しています...
+            おこづかいを計算しています...
           </p>
         </div>
       )}
@@ -225,7 +257,7 @@ const CalculationPage: React.FC = () => {
               ¥{calculation.totalAmount?.toLocaleString() || '0'}
             </div>
             <div className="text-gray-600">
-              {selectedDate}のお小遣い
+              {selectedDate}のおこづかい
             </div>
           </div>
 
@@ -336,7 +368,7 @@ const CalculationPage: React.FC = () => {
       )}
 
       {/* データがない場合の表示 */}
-      {!calculation && !isLoading && !error && selectedDate && (
+      {!calculation && !isLoading && !error && selectedDate && hasTaskData === false && (
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
           <div className="text-gray-400 text-6xl mb-4">📊</div>
           <h3 className="text-xl font-medium text-gray-600 mb-2">
@@ -355,30 +387,22 @@ const CalculationPage: React.FC = () => {
         </div>
       )}
 
-      {/* ナビゲーション */}
-      <div className="mt-8 text-center">
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link to="/daily-input">
-            <button className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center">
-              <span className="text-2xl mr-2">📝</span>
-              タスク入力
-            </button>
-          </Link>
-          <Link to="/history">
-            <button className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center">
-              <span className="text-2xl mr-2">📊</span>
-              履歴を見る
-            </button>
-          </Link>
-          <Link to="/">
-            <button className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-md font-medium inline-flex items-center">
-              <span className="text-2xl mr-2">🏠</span>
-              ホームに戻る
-            </button>
-          </Link>
+      {/* データがあるが未計算の場合の表示 */}
+      {!calculation && !isLoading && !error && selectedDate && hasTaskData === true && (
+        <div className="bg-white rounded-lg shadow-md p-8 text-center">
+          <div className="text-gray-400 text-6xl mb-4">🧮</div>
+          <h3 className="text-xl font-medium text-gray-600 mb-2">
+            {selectedDate}のデータがあります
+          </h3>
+          <p className="text-gray-600">
+            「計算する」ボタンを押しておこづかいを計算しましょう。
+          </p>
         </div>
+      )}
+
       </div>
-    </div>
+      <BottomNavigation current="calculation" />
+    </>
   )
 }
 
