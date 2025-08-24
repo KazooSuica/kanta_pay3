@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import BottomNavigation from '../components/common/BottomNavigation'
 import { Task, Category } from '../types'
@@ -18,6 +18,7 @@ const DailyInputPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().split('T')[0])
   const [activeCategoryId, setActiveCategoryId] = useState<string>('')
   const [isEditing, setIsEditing] = useState(false)
+  const dateInputRef = useRef<HTMLInputElement>(null)
 
   // カテゴリとタスクの初期読み込み
   useEffect(() => {
@@ -284,21 +285,36 @@ const DailyInputPage: React.FC = () => {
         <p className="text-gray-600 mb-4">
           やったお手伝いや宿題を記録しよう
         </p>
-        <div className="flex justify-center mb-2">
+        <div className="flex justify-center items-center mb-2">
+          <div className="text-lg font-medium text-blue-600">
+            {new Date(selectedDate).toLocaleDateString('ja-JP', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              weekday: 'long'
+            })}
+          </div>
+          <button
+            onClick={() => dateInputRef.current?.showPicker()}
+            className="ml-2 text-blue-600 hover:text-blue-800"
+            aria-label="日付を選択"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
+          </button>
           <input
+            ref={dateInputRef}
             type="date"
             value={selectedDate}
             onChange={e => setSelectedDate(e.target.value)}
-            className="border rounded px-3 py-1"
+            className="hidden"
           />
-        </div>
-        <div className="text-lg font-medium text-blue-600">
-          {new Date(selectedDate).toLocaleDateString('ja-JP', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            weekday: 'long'
-          })}
         </div>
       </div>
 
